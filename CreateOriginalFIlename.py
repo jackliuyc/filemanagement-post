@@ -28,6 +28,7 @@ FILENAME_CONFIG = {
                 "options": ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18", "v19", "v20"],
                 "validation": r"^v\d+$",
                 "error_message": "Phase must be v1, v2, or v3"
+
             },
             {
                 "name": "day",
@@ -36,7 +37,8 @@ FILENAME_CONFIG = {
                 "default": "d1",
                 "options": ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15", "d16", "d17", "d18", "d19", "d20"],
                 "validation": r"^d\d+$",
-                "error_message": "Day must be d1, d2, or d3"
+                "error_message": "Day must be d1, d2, or d3",
+                "no_leading_underscore": True
             },
             {
                 "name": "file_type",
@@ -64,8 +66,8 @@ FILENAME_CONFIG = {
                 "name": "date",
                 "label": "Date",
                 "type": "date",
-                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
-                "error_message": "Date must be in MM.DD.YYYY format"
+                "validation": r"^\d{2}-\d{2}-\d{4}$",
+                "error_message": "Date must be in MM-DD-YYYY format"
             },
             {
                 "name": "capsize",
@@ -106,6 +108,7 @@ FILENAME_CONFIG = {
                 "label": "Study",
                 "type": "text",
                 "default": "HealX",
+                "error_message": "Study must be HealX",
                 "editable": False
             },
             {
@@ -126,8 +129,8 @@ FILENAME_CONFIG = {
             },
             {
                 "name": "HX",
-                "label": "HX",
-                "type": "text",
+                "label": "2",
+                "type": "hidden",
                 "default": "HX-",
                 "editable": False
             },
@@ -136,7 +139,8 @@ FILENAME_CONFIG = {
                 "label": "Subject ID (HX-##)",
                 "type": "text",
                 "validation": r"^\d{2}$",
-                "error_message": "Subject ID must be 2 digits"
+                "error_message": "Subject ID must be 2 digits",
+                "no_leading_underscore": True
             },
             {
                 "name": "subject_initials",
@@ -149,8 +153,8 @@ FILENAME_CONFIG = {
                 "name": "date",
                 "label": "Date",
                 "type": "date",
-                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
-                "error_message": "Date must be in MM.DD.YYYY format"
+                "validation": r"^\d{2}-\d{2}-\d{4}$",
+                "error_message": "Date must be in MM-DD-YYYY format"
             }
         ],
         "optional_suffixes": []
@@ -199,6 +203,8 @@ FILENAME_CONFIG = {
                 "label": "HX",
                 "type": "text",
                 "default": "HX",
+                "validation": r"^HX$",
+                "error_message": "HX must be HX",
                 "editable": False
             },
             {
@@ -294,7 +300,7 @@ class FilenameGenerator(QMainWindow):
                 border-radius: 4px;
                 background-color: #FFFFFF;
                 color: #1A3A54;
-                width: 100px;
+                width: 150;
             }
             QPushButton {
                 font-size: 16px;
@@ -398,6 +404,7 @@ class FilenameGenerator(QMainWindow):
             if "editable" in segment and not segment["editable"]:
                 widget.setReadOnly(True)
             widget.textChanged.connect(lambda: self.validate_field(segment["name"]))
+            print(segment["name"])
         elif segment["type"] == "combo":
             widget = QComboBox()
             widget.setMinimumHeight(30)
@@ -414,6 +421,9 @@ class FilenameGenerator(QMainWindow):
             widget.setMinimumHeight(30)
             widget.setMinimum(1)
             widget.valueChanged.connect(lambda: self.validate_field(segment["name"]))
+        elif segment["type"] == "hidden":
+            widget = QLineEdit()
+            widget.setVisible(False)
         widget.setStyleSheet("font-size: 14px;")
         return widget
 
@@ -425,49 +435,40 @@ class FilenameGenerator(QMainWindow):
     def validate_field(self, field_name):
         preset = FILENAME_CONFIG[self.preset_combo.currentText()]
         segment = next((s for s in preset["segments"] if s["name"] == field_name), None)
-        if segment:
+        if segment and "validation" in segment and segment["type"] != "hidden":
             value = self.get_input_value(field_name)
             if re.match(segment["validation"], value):
                 self.inputs[field_name].setStyleSheet("border: 1px solid green;")
             else:
                 self.inputs[field_name].setStyleSheet("border: 1px solid red;")
+        elif segment and segment["type"] != "hidden":
+            # If no validation is present, remove any existing style
+            self.inputs[field_name].setStyleSheet("")
         self.update_preview()
 
     def update_preview(self):
-        try:
-            filename_parts = []
-            preset = FILENAME_CONFIG[self.preset_combo.currentText()]
-            
-            for segment in preset["segments"]:
-                value = self.get_input_value(segment["name"])
-                filename_parts.append(value)
-            
-            filename = "_".join(filename_parts)
-            
-            for suffix in preset["optional_suffixes"]:
-                if self.inputs[suffix["name"]].isChecked():
-                    filename += f"_{suffix['name']}"
-            
-            self.result_label.setText(filename)
-            self.result_frame.show()
-        except Exception as e:
-            self.result_label.setText("Invalid input")
-
-    def generate_filename(self):
         filename_parts = []
         preset = FILENAME_CONFIG[self.preset_combo.currentText()]
         error_messages = []
         
         for segment in preset["segments"]:
             value = self.get_input_value(segment["name"])
-            if not re.match(segment["validation"], value):
-                error_messages.append(segment["error_message"])
-                self.inputs[segment["name"]].setStyleSheet("border: 1px solid red;")
+            if "validation" in segment:
+                if re.match(segment["validation"], value):
+                    self.inputs[segment["name"]].setStyleSheet("border: 1px solid green;")
+                else:
+                    error_messages.append(segment["error_message"])
+                    self.inputs[segment["name"]].setStyleSheet("border: 1px solid red;")
             else:
-                self.inputs[segment["name"]].setStyleSheet("border: 1px solid green;")
+                # No validation present, remove any existing style
+                self.inputs[segment["name"]].setStyleSheet("")
             filename_parts.append(value)
         
-        filename = "_".join(filename_parts)
+        filename = ""
+        for i, part in enumerate(filename_parts):
+            if i > 0 and not preset["segments"][i].get("no_leading_underscore", False):
+                filename += "_"
+            filename += part
         
         for suffix in preset["optional_suffixes"]:
             if self.inputs[suffix["name"]].isChecked():
@@ -479,9 +480,13 @@ class FilenameGenerator(QMainWindow):
         else:
             self.result_label.setText(filename)
             self.result_label.setStyleSheet("color: black;")
-            self.animate_result_frame()
         
         self.result_frame.show()
+
+    def generate_filename(self):
+        self.update_preview()
+        if not any("validation" in segment and not re.match(segment["validation"], self.get_input_value(segment["name"])) for segment in FILENAME_CONFIG[self.preset_combo.currentText()]["segments"] if "validation" in segment):
+            self.animate_result_frame()
 
     def get_input_value(self, name):
         widget = self.inputs[name]
