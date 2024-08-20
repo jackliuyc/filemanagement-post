@@ -4,10 +4,11 @@ import re
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, 
                              QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
                              QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
-                             QScrollArea, QFrame)
-from PyQt6.QtCore import Qt, QDate, QTimer
-from PyQt6.QtGui import QFont, QColor, QPalette, QIcon
-from PyQt6.QtCore import QPropertyAnimation, QEasingCurve
+                             QScrollArea, QFrame, QToolTip, QFileDialog)
+from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation, 
+                          QEasingCurve, QSettings)
+from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
+                         QCursor, QDesktopServices)
 
 FILENAME_CONFIG = {
     "default": {
@@ -88,6 +89,62 @@ FILENAME_CONFIG = {
                 "type": "checkbox"
             }
         ]
+    },
+    "HealX": {
+        "segments": [
+            {
+                "name": "study",
+                "label": "Study",
+                "type": "text",
+                "default": "HealX",
+                "editable": False
+            },
+            {
+                "name": "phase",
+                "label": "Phase",
+                "type": "combo",
+                "options": ["v1", "v2", "v3"],
+                "validation": r"^v\d+$",
+                "error_message": "Phase must be v1, v2, or v3"
+            },
+            {
+                "name": "file_type",
+                "label": "File Type",
+                "type": "combo",
+                "options": ["rest", "chirp", "SSCT", "RLEEG", "Talk", "Listen", "VDAudio", "VDNoAudio", "Other"],
+                "validation": r"^[A-Za-z]+$",
+                "error_message": "File type must be alphabetic"
+            },
+            {
+                "name": "subject_id",
+                "label": "Subject ID",
+                "type": "text",
+                "validation": r"^HX-\d{2}$",
+                "error_message": "Subject ID must be in the format 'HX-##'"
+            },
+            {
+                "name": "subject_initials",
+                "label": "Subject Initials",
+                "type": "text",
+                "validation": r"^[A-Z]{2}$",
+                "error_message": "Subject Initials must be 2 uppercase letters"
+            },
+            {
+                "name": "HX",
+                "label": "HX",
+                "type": "text",
+                "default": "HX",
+                "editable": False
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
+                "error_message": "Date must be in MM.DD.YYYY format"
+            }
+        ],
+        "optional_suffixes": []
     }
     # ... other presets can be added here
 }
@@ -99,31 +156,34 @@ class FilenameGenerator(QMainWindow):
         self.setGeometry(100, 100, 600, 800)
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f0f0f0;
+                background-color: #E6F3FF;
             }
             QLabel {
                 font-size: 14px;
-                color: #333;
+                color: #1A3A54;
             }
             QComboBox, QLineEdit, QDateEdit, QSpinBox {
                 font-size: 14px;
                 padding: 5px;
-                border: 1px solid #ccc;
+                border: 1px solid #4A90E2;
                 border-radius: 4px;
+                background-color: #FFFFFF;
+                color: #1A3A54;
             }
             QPushButton {
                 font-size: 16px;
                 padding: 10px;
-                background-color: #4CAF50;
+                background-color: #4A90E2;
                 color: white;
                 border: none;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #45a049;
+                background-color: #3A7BC8;
             }
             QCheckBox {
                 font-size: 14px;
+                color: #1A3A54;
             }
         """)
         
@@ -138,6 +198,7 @@ class FilenameGenerator(QMainWindow):
         self.layout.addWidget(self.preset_combo)
         
         self.scroll_area = QScrollArea()
+        self.scroll_area.setStyleSheet("background-color: white")
         self.scroll_area.setWidgetResizable(True)
         self.scroll_content = QWidget()
         self.form_layout = QFormLayout(self.scroll_content)
@@ -150,7 +211,7 @@ class FilenameGenerator(QMainWindow):
         self.result_frame = QFrame()
         self.result_frame.setStyleSheet("""
             QFrame {
-                background-color: #e0e0e0;
+                background-color: #B3D9FF;
                 border-radius: 8px;
                 padding: 10px;
                 margin-top: 10px;
@@ -159,20 +220,24 @@ class FilenameGenerator(QMainWindow):
         """)
         self.result_layout = QHBoxLayout(self.result_frame)
         self.result_label = QLabel()
-        self.result_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #333;")
+        self.result_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #1A3A54;")
         self.result_layout.addWidget(self.result_label)
         
-        self.copy_button = QPushButton()
+        self.copy_button = QPushButton("Copy")
         self.copy_button.setIcon(QIcon.fromTheme("edit-copy"))
         self.copy_button.setToolTip("Copy to Clipboard")
         self.copy_button.clicked.connect(self.copy_to_clipboard)
         self.copy_button.setStyleSheet("""
             QPushButton {
-                background-color: transparent;
+                background-color: #4A90E2;
+                color: white;
                 border: none;
+                border-radius: 4px;
+                padding: 5px 10px;
+                font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #d0d0d0;
+                background-color: #3A7BC8;
             }
         """)
         self.result_layout.addWidget(self.copy_button)
@@ -258,27 +323,34 @@ class FilenameGenerator(QMainWindow):
             self.result_label.setText("Invalid input")
 
     def generate_filename(self):
-        try:
-            filename_parts = []
-            preset = FILENAME_CONFIG[self.preset_combo.currentText()]
-            
-            for segment in preset["segments"]:
-                value = self.get_input_value(segment["name"])
-                if not re.match(segment["validation"], value):
-                    raise ValueError(segment["error_message"])
-                filename_parts.append(value)
-            
-            filename = "_".join(filename_parts)
-            
-            for suffix in preset["optional_suffixes"]:
-                if self.inputs[suffix["name"]].isChecked():
-                    filename += f"_{suffix['name']}"
-            
+        filename_parts = []
+        preset = FILENAME_CONFIG[self.preset_combo.currentText()]
+        error_messages = []
+        
+        for segment in preset["segments"]:
+            value = self.get_input_value(segment["name"])
+            if not re.match(segment["validation"], value):
+                error_messages.append(segment["error_message"])
+                self.inputs[segment["name"]].setStyleSheet("border: 1px solid red;")
+            else:
+                self.inputs[segment["name"]].setStyleSheet("border: 1px solid green;")
+            filename_parts.append(value)
+        
+        filename = "_".join(filename_parts)
+        
+        for suffix in preset["optional_suffixes"]:
+            if self.inputs[suffix["name"]].isChecked():
+                filename += f"_{suffix['name']}"
+        
+        if error_messages:
+            self.result_label.setText("Validation errors:\n" + "\n".join(error_messages))
+            self.result_label.setStyleSheet("color: red;")
+        else:
             self.result_label.setText(filename)
-            self.result_frame.show()
+            self.result_label.setStyleSheet("color: black;")
             self.animate_result_frame()
-        except ValueError as e:
-            QMessageBox.warning(self, "Validation Error", str(e))
+        
+        self.result_frame.show()
 
     def get_input_value(self, name):
         widget = self.inputs[name]
@@ -295,8 +367,15 @@ class FilenameGenerator(QMainWindow):
     def copy_to_clipboard(self):
         filename = self.result_label.text()
         QApplication.clipboard().setText(filename)
-        self.copy_button.setIcon(QIcon.fromTheme("emblem-default"))
-        QTimer.singleShot(2000, lambda: self.copy_button.setIcon(QIcon.fromTheme("edit-copy")))
+        
+        self.copy_button.setText("Copied!")
+        QTimer.singleShot(2000, self.reset_copy_button)
+        
+        QToolTip.showText(self.copy_button.mapToGlobal(QPoint(0, 0)), f"Copied: {filename}", self.copy_button)
+    
+    def reset_copy_button(self):
+        self.copy_button.setText("Copy")
+        QToolTip.hideText()
 
     def animate_result_frame(self):
         animation = QPropertyAnimation(self.result_frame, b"geometry")
