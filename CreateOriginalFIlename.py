@@ -11,6 +11,206 @@ from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap,
                          QCursor, QDesktopServices)
 
 FILENAME_CONFIG = {
+    "BIO": {
+        "segments": [
+            {
+                "name": "study",
+                "label": "Study",
+                "type": "text",
+                "default": "BIO",
+                "validation": r"^BIO$",
+                "editable": False
+            },
+            {
+                "name": "phase",
+                "label": "Phase",
+                "type": "combo",
+                "options": ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18", "v19", "v20"],
+                "validation": r"^v\d+$",
+                "error_message": "Phase must be v1, v2, or v3"
+            },
+            {
+                "name": "day",
+                "label": "Day",
+                "type": "combo",
+                "default": "d1",
+                "options": ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15", "d16", "d17", "d18", "d19", "d20"],
+                "validation": r"^d\d+$",
+                "error_message": "Day must be d1, d2, or d3"
+            },
+            {
+                "name": "file_type",
+                "label": "File Type",
+                "type": "combo",
+                "options": ["rest", "chirp", "SSCT", "RLEEG", "resteyesclosed", "Talk", "Listen", "VDAudio", "VDNoAudio", "Other"],
+                "validation": r"^[A-Za-z]+$",
+                "error_message": "File type must be alphabetic"
+            },
+            {
+                "name": "subject_id",
+                "label": "Subject ID",
+                "type": "text",
+                "validation": r"^\d{5}$",
+                "error_message": "Subject ID must be 5 digits"
+            },
+            {
+                "name": "subject_initials",
+                "label": "Subject Initials",
+                "type": "text",
+                "validation": r"^[A-Z]{2,3}$",
+                "error_message": "Subject Initials must be 2 uppercase letters"
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
+                "error_message": "Date must be in MM.DD.YYYY format"
+            },
+            {
+                "name": "capsize",
+                "label": "Capsize",
+                "type": "combo",
+                "options": ["adult", "infant"],
+                "validation": r"^adult|infant$",
+                "error_message": "Capsize must be adult or infant"
+            },
+            {
+                "name": "audio_source",
+                "label": "Audio Source",
+                "type": "combo",
+                "options": ["headphones", "speakers"],
+                "validation": r"^headphones|speakers$",
+                "error_message": "Audio source must be headphones or speaker"
+            },
+
+            # ... other segments remain the same as default
+        ],
+        "optional_suffixes": [
+            {
+                "name": "babycap",
+                "label": "Baby Cap",
+                "type": "checkbox"
+            },
+            {
+                "name": "speakers",
+                "label": "Speakers",
+                "type": "checkbox"
+            }
+        ]
+    },
+    "HealX": {
+        "segments": [
+            {
+                "name": "study",
+                "label": "Study",
+                "type": "text",
+                "default": "HealX",
+                "editable": False
+            },
+            {
+                "name": "phase",
+                "label": "Phase",
+                "type": "combo",
+                "options": ["v1pre", "v1post", "v2pre", "v2post", "v3pre", "v3post","v4pre", "v4post"],
+                "validation": r"^v\d+pre|v\d+post$",
+                "error_message": "Phase must be v1pre, v1post, v2pre, v2post, v3pre, v3post, v4pre, or v4post"
+            },
+            {
+                "name": "file_type",
+                "label": "File Type",
+                "type": "combo",
+                "options": ["rest","resteyesclosed", "chirp"],
+                "validation": r"^[A-Za-z]+$",
+                "error_message": "File type must be alphabetic"
+            },
+            {
+                "name": "HX",
+                "label": "HX",
+                "type": "text",
+                "default": "HX-",
+                "editable": False
+            },
+            {
+                "name": "subject_id",
+                "label": "Subject ID (HX-##)",
+                "type": "text",
+                "validation": r"^\d{2}$",
+                "error_message": "Subject ID must be 2 digits"
+            },
+            {
+                "name": "subject_initials",
+                "label": "Subject Initials",
+                "type": "text",
+                "validation": r"^[A-Z]{2,3}$",
+                "error_message": "Subject Initials must be 2 or 3 uppercase letters"
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
+                "error_message": "Date must be in MM.DD.YYYY format"
+            }
+        ],
+        "optional_suffixes": []
+    },
+    "Spinogenix": {
+        "segments": [
+            {
+                "name": "study",
+                "label": "Study",
+                "type": "text",
+                "default": "SPX",
+                "editable": False
+            },
+            {
+                "name": "phase",
+                "label": "Phase",
+                "type": "combo",
+                "options": ["v1", "v2", "v3"],
+                "validation": r"^v\d+$",
+                "error_message": "Phase must be v1, v2, or v3"
+            },
+            {
+                "name": "file_type",
+                "label": "File Type",
+                "type": "combo",
+                "options": ["rest", "chirp", "SSCT", "RLEEG", "Talk", "Listen", "VDAudio", "VDNoAudio", "Other"],
+                "validation": r"^[A-Za-z]+$",
+                "error_message": "File type must be alphabetic"
+            },
+            {
+                "name": "subject_id",
+                "label": "Subject ID",
+                "type": "text",
+                "validation": r"^\d{2}$",
+                "error_message": "Subject ID must be 2 digits"
+            },
+            {
+                "name": "subject_initials",
+                "label": "Subject Initials",
+                "type": "text",
+                "validation": r"^[A-Z]{2}$",
+                "error_message": "Subject Initials must be 2 uppercase letters"
+            },
+            {
+                "name": "HX",
+                "label": "HX",
+                "type": "text",
+                "default": "HX",
+                "editable": False
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
+                "error_message": "Date must be in MM.DD.YYYY format"
+            }
+        ],
+        "optional_suffixes": []
+    },
     "default": {
         "segments": [
             {
@@ -70,81 +270,6 @@ FILENAME_CONFIG = {
                 "type": "checkbox"
             }
         ]
-    },
-    "BIO": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "text",
-                "default": "BIO",
-                "editable": False
-            },
-            # ... other segments remain the same as default
-        ],
-        "optional_suffixes": [
-            {
-                "name": "babycap",
-                "label": "Baby Cap",
-                "type": "checkbox"
-            }
-        ]
-    },
-    "HealX": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "text",
-                "default": "HealX",
-                "editable": False
-            },
-            {
-                "name": "phase",
-                "label": "Phase",
-                "type": "combo",
-                "options": ["v1", "v2", "v3"],
-                "validation": r"^v\d+$",
-                "error_message": "Phase must be v1, v2, or v3"
-            },
-            {
-                "name": "file_type",
-                "label": "File Type",
-                "type": "combo",
-                "options": ["rest", "chirp", "SSCT", "RLEEG", "Talk", "Listen", "VDAudio", "VDNoAudio", "Other"],
-                "validation": r"^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID",
-                "type": "text",
-                "validation": r"^HX-\d{2}$",
-                "error_message": "Subject ID must be in the format 'HX-##'"
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": r"^[A-Z]{2}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
-            },
-            {
-                "name": "HX",
-                "label": "HX",
-                "type": "text",
-                "default": "HX",
-                "editable": False
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
-                "error_message": "Date must be in MM.DD.YYYY format"
-            }
-        ],
-        "optional_suffixes": []
     }
     # ... other presets can be added here
 }
@@ -169,6 +294,7 @@ class FilenameGenerator(QMainWindow):
                 border-radius: 4px;
                 background-color: #FFFFFF;
                 color: #1A3A54;
+                width: 100px;
             }
             QPushButton {
                 font-size: 16px;
@@ -206,7 +332,7 @@ class FilenameGenerator(QMainWindow):
         self.layout.addWidget(self.scroll_area)
         
         self.inputs = {}
-        self.load_preset("default")
+        self.load_preset("BIO")
         
         self.result_frame = QFrame()
         self.result_frame.setStyleSheet("""
@@ -266,6 +392,7 @@ class FilenameGenerator(QMainWindow):
     def create_widget(self, segment):
         if segment["type"] == "text":
             widget = QLineEdit()
+            widget.setMinimumHeight(30)
             if "default" in segment:
                 widget.setText(segment["default"])
             if "editable" in segment and not segment["editable"]:
@@ -273,17 +400,21 @@ class FilenameGenerator(QMainWindow):
             widget.textChanged.connect(lambda: self.validate_field(segment["name"]))
         elif segment["type"] == "combo":
             widget = QComboBox()
+            widget.setMinimumHeight(30)
             widget.addItems(segment["options"])
             widget.currentTextChanged.connect(lambda: self.validate_field(segment["name"]))
         elif segment["type"] == "date":
             widget = QDateEdit()
+            widget.setMinimumHeight(30)
             widget.setCalendarPopup(True)
             widget.setDate(QDate.currentDate())
             widget.dateChanged.connect(lambda: self.validate_field(segment["name"]))
         elif segment["type"] == "spinbox":
             widget = QSpinBox()
+            widget.setMinimumHeight(30)
             widget.setMinimum(1)
             widget.valueChanged.connect(lambda: self.validate_field(segment["name"]))
+        widget.setStyleSheet("font-size: 14px;")
         return widget
 
     def clear_form(self):
