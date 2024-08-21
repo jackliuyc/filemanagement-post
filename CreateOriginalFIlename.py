@@ -4,281 +4,21 @@ import re
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, 
                              QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
                              QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
-                             QScrollArea, QFrame, QToolTip, QFileDialog)
+                             QScrollArea, QFrame, QToolTip, QFileDialog, QTabWidget,
+                             QTextEdit)
 from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation, 
                           QEasingCurve, QSettings)
 from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
                          QCursor, QDesktopServices)
 
-FILENAME_CONFIG = {
-    "BIO": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "text",
-                "default": "BIO",
-                "validation": r"^BIO$",
-                "editable": False
-            },
-            {
-                "name": "phase",
-                "label": "Phase",
-                "type": "combo",
-                "options": ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18", "v19", "v20"],
-                "validation": r"^v\d+$",
-                "error_message": "Phase must be v1, v2, or v3"
 
-            },
-            {
-                "name": "day",
-                "label": "Day",
-                "type": "combo",
-                "default": "d1",
-                "options": ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15", "d16", "d17", "d18", "d19", "d20"],
-                "validation": r"^d\d+$",
-                "error_message": "Day must be d1, d2, or d3",
-                "no_leading_underscore": True
-            },
-            {
-                "name": "file_type",
-                "label": "File Type",
-                "type": "combo",
-                "options": ["rest", "chirp", "SSCT", "RLEEG", "resteyesclosed", "Talk", "Listen", "VDAudio", "VDNoAudio", "Other"],
-                "validation": r"^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID",
-                "type": "text",
-                "validation": r"^\d{5}$",
-                "error_message": "Subject ID must be 5 digits"
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": r"^[A-Z]{2,3}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": r"^\d{2}-\d{2}-\d{4}$",
-                "error_message": "Date must be in MM-DD-YYYY format"
-            },
-            {
-                "name": "capsize",
-                "label": "Capsize",
-                "type": "combo",
-                "options": ["adult", "infant"],
-                "validation": r"^adult|infant$",
-                "error_message": "Capsize must be adult or infant"
-            },
-            {
-                "name": "audio_source",
-                "label": "Audio Source",
-                "type": "combo",
-                "options": ["headphones", "speakers"],
-                "validation": r"^headphones|speakers$",
-                "error_message": "Audio source must be headphones or speaker"
-            },
+# Write config to file
+# with open('filename_config.json', 'w') as f:
+#    json.dump(FILENAME_CONFIG, f, indent=4)
 
-            # ... other segments remain the same as default
-        ],
-        "optional_suffixes": [
-            {
-                "name": "babycap",
-                "label": "Baby Cap",
-                "type": "checkbox"
-            },
-            {
-                "name": "speakers",
-                "label": "Speakers",
-                "type": "checkbox"
-            }
-        ]
-    },
-    "HealX": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "text",
-                "default": "HealX",
-                "error_message": "Study must be HealX",
-                "editable": False
-            },
-            {
-                "name": "phase",
-                "label": "Phase",
-                "type": "combo",
-                "options": ["v1pre", "v1post", "v2pre", "v2post", "v3pre", "v3post","v4pre", "v4post"],
-                "validation": r"^v\d+pre|v\d+post$",
-                "error_message": "Phase must be v1pre, v1post, v2pre, v2post, v3pre, v3post, v4pre, or v4post"
-            },
-            {
-                "name": "file_type",
-                "label": "File Type",
-                "type": "combo",
-                "options": ["rest","resteyesclosed", "chirp"],
-                "validation": r"^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
-            },
-            {
-                "name": "HX",
-                "label": "2",
-                "type": "hidden",
-                "default": "HX-",
-                "editable": False
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID (HX-##)",
-                "type": "text",
-                "validation": r"^\d{2}$",
-                "error_message": "Subject ID must be 2 digits",
-                "no_leading_underscore": True
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": r"^[A-Z]{2,3}$",
-                "error_message": "Subject Initials must be 2 or 3 uppercase letters"
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": r"^\d{2}-\d{2}-\d{4}$",
-                "error_message": "Date must be in MM-DD-YYYY format"
-            }
-        ],
-        "optional_suffixes": []
-    },
-    "Spinogenix": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "text",
-                "default": "SPX",
-                "editable": False
-            },
-            {
-                "name": "phase",
-                "label": "Phase",
-                "type": "combo",
-                "options": ["v1", "v2", "v3"],
-                "validation": r"^v\d+$",
-                "error_message": "Phase must be v1, v2, or v3"
-            },
-            {
-                "name": "file_type",
-                "label": "File Type",
-                "type": "combo",
-                "options": ["rest", "chirp", "SSCT", "RLEEG", "Talk", "Listen", "VDAudio", "VDNoAudio", "Other"],
-                "validation": r"^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID",
-                "type": "text",
-                "validation": r"^\d{2}$",
-                "error_message": "Subject ID must be 2 digits"
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": r"^[A-Z]{2}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
-            },
-            {
-                "name": "HX",
-                "label": "HX",
-                "type": "text",
-                "default": "HX",
-                "validation": r"^HX$",
-                "error_message": "HX must be HX",
-                "editable": False
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": r"^\d{2}\.\d{2}\.\d{4}$",
-                "error_message": "Date must be in MM.DD.YYYY format"
-            }
-        ],
-        "optional_suffixes": []
-    },
-    "default": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "combo",
-                "options": ["BIO", "ENTRAIN", "U54SingleDose", "HealX", "Other"],
-                "validation": r"^[A-Za-z0-9]+$",
-                "error_message": "Study name must be alphanumeric"
-            },
-            {
-                "name": "visit_number",
-                "label": "Visit Number",
-                "type": "spinbox",
-                "validation": r"^\d+$",
-                "error_message": "Visit number must be a positive integer"
-            },
-            {
-                "name": "file_type",
-                "label": "File Type",
-                "type": "combo",
-                "options": ["rest", "chirp", "SSCT", "RLEEG", "Talk", "Listen", "VDAudio", "VDNoAudio", "Other"],
-                "validation": r"^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID",
-                "type": "text",
-                "validation": r"^\d{5}$",
-                "error_message": "Subject ID must be 5 digits"
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": r"^[A-Z]{2}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": r"^\d{2}-\d{2}-\d{4}$",
-                "error_message": "Date must be in MM-DD-YYYY format"
-            }
-        ],
-        "optional_suffixes": [
-            {
-                "name": "babycap",
-                "label": "Baby Cap",
-                "type": "checkbox"
-            },
-            {
-                "name": "speakers",
-                "label": "Speakers",
-                "type": "checkbox"
-            }
-        ]
-    }
-    # ... other presets can be added here
-}
+# Read config from file
+with open('filename_config.json', 'r') as f:
+    FILENAME_CONFIG = json.load(f)
 
 class FilenameGenerator(QMainWindow):
     def __init__(self):
@@ -323,11 +63,19 @@ class FilenameGenerator(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
         
+        self.tab_widget = QTabWidget()
+        self.layout.addWidget(self.tab_widget)
+        
+        # Filename Generator Tab
+        self.filename_tab = QWidget()
+        self.filename_layout = QVBoxLayout(self.filename_tab)
+        self.tab_widget.addTab(self.filename_tab, "Filename Generator")
+        
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(FILENAME_CONFIG.keys())
         self.preset_combo.currentTextChanged.connect(self.load_preset)
-        self.layout.addWidget(QLabel("Select Preset:"))
-        self.layout.addWidget(self.preset_combo)
+        self.filename_layout.addWidget(QLabel("Select Preset:"))
+        self.filename_layout.addWidget(self.preset_combo)
         
         self.scroll_area = QScrollArea()
         self.scroll_area.setStyleSheet("background-color: white")
@@ -335,7 +83,7 @@ class FilenameGenerator(QMainWindow):
         self.scroll_content = QWidget()
         self.form_layout = QFormLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
-        self.layout.addWidget(self.scroll_area)
+        self.filename_layout.addWidget(self.scroll_area)
         
         self.inputs = {}
 
@@ -355,7 +103,7 @@ class FilenameGenerator(QMainWindow):
         self.validation_label = QLabel("Please fill in the fields to generate a filename.")
         self.validation_label.setStyleSheet("font-size: 14px; color: #2E7D32;")
         self.validation_layout.addWidget(self.validation_label)
-        self.layout.addWidget(self.validation_frame)
+        self.filename_layout.addWidget(self.validation_frame)
 
         # Modify result frame (preview box)
         self.result_frame = QFrame()
@@ -392,9 +140,28 @@ class FilenameGenerator(QMainWindow):
         """)
         self.result_layout.addWidget(self.copy_button)
         
-        self.layout.addWidget(self.result_frame)
-        #self.result_frame.hide()
-    
+        self.filename_layout.addWidget(self.result_frame)
+        
+        self.lock_button = QPushButton("Lock Filename")
+        self.lock_button.clicked.connect(self.lock_filename)
+        self.filename_layout.addWidget(self.lock_button)
+        
+        # JSON Sidecar Builder Tab
+        self.json_tab = QWidget()
+        self.json_layout = QVBoxLayout(self.json_tab)
+        self.tab_widget.addTab(self.json_tab, "JSON Sidecar Builder")
+        self.tab_widget.setTabEnabled(1, False)  # Disable JSON tab initially
+        
+        self.notes_label = QLabel("Notes about the recording:")
+        self.json_layout.addWidget(self.notes_label)
+        
+        self.notes_text = QTextEdit()
+        self.json_layout.addWidget(self.notes_text)
+        
+        self.save_json_button = QPushButton("Save JSON Sidecar")
+        self.save_json_button.clicked.connect(self.save_json_sidecar)
+        self.json_layout.addWidget(self.save_json_button)
+        
         self.load_preset("BIO")
 
     def load_preset(self, preset_name):
@@ -554,6 +321,34 @@ class FilenameGenerator(QMainWindow):
         animation.setEndValue(self.result_frame.geometry())
         animation.setEasingCurve(QEasingCurve.Type.OutBack)
         animation.start()
+
+    def lock_filename(self):
+        self.generate_filename()
+        if not self.validation_label.text().startswith("Validation errors"):
+            self.tab_widget.setTabEnabled(1, True)
+            self.tab_widget.setCurrentIndex(1)
+            filename = self.result_label.text()
+            self.tab_widget.setTabText(1, f"{filename}_metadata.json")
+
+    def save_json_sidecar(self):
+        filename = self.result_label.text()
+        json_data = {
+            "filename": filename,
+            "notes": self.notes_text.toPlainText()
+        }
+        
+        # Add all data from the first tab
+        for segment in FILENAME_CONFIG[self.preset_combo.currentText()]["segments"]:
+            json_data[segment["name"]] = self.get_input_value(segment["name"])
+        
+        for suffix in FILENAME_CONFIG[self.preset_combo.currentText()]["optional_suffixes"]:
+            json_data[suffix["name"]] = self.inputs[suffix["name"]].isChecked()
+        
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save JSON Sidecar", f"{filename}_metadata.json", "JSON Files (*.json)")
+        if file_path:
+            with open(file_path, 'w') as f:
+                json.dump(json_data, f, indent=4)
+            QMessageBox.information(self, "Success", "JSON sidecar saved successfully!")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
