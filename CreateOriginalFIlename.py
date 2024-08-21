@@ -172,6 +172,8 @@ class FilenameGenerator(QMainWindow):
         self.save_json_button.clicked.connect(self.save_json_sidecar)
         self.json_layout.addWidget(self.save_json_button)
         
+        self.indicators = {}  # Add this line to store the indicator labels
+
         self.load_preset("BIO")
 
     def load_preset(self, preset_name):
@@ -180,11 +182,23 @@ class FilenameGenerator(QMainWindow):
         
         for segment in preset["segments"]:
             widget = self.create_widget(segment)
-            self.form_layout.addRow(segment["label"], widget)
+            row_layout = QHBoxLayout()
+            row_layout.addWidget(widget)
+            
+            if segment.get("editable", True):  # Only add indicator for editable fields
+                indicator = QLabel("❌")  # Red X
+                indicator.setStyleSheet("color: red; font-size: 16px;")
+                self.indicators[segment["name"]] = indicator
+                row_layout.addWidget(indicator)
+            
+            row_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            
+            self.form_layout.addRow(segment["label"], row_layout)
             self.inputs[segment["name"]] = widget
         
         for suffix in preset["optional_suffixes"]:
             widget = QCheckBox(suffix["label"])
+            widget.stateChanged.connect(lambda state, name=suffix["name"]: self.update_indicator(name, state))
             self.form_layout.addRow("", widget)
             self.inputs[suffix["name"]] = widget
 
@@ -199,28 +213,41 @@ class FilenameGenerator(QMainWindow):
                 widget.setText(segment["default"])
             if "editable" in segment and not segment["editable"]:
                 widget.setReadOnly(True)
-            widget.textChanged.connect(lambda: self.validate_field(segment["name"]))
-            print(segment["name"])
+                widget.setStyleSheet("font-size: 14px; background-color: #F0F0F0;")  # Grey out non-editable fields
+            else:
+                widget.textChanged.connect(lambda text, name=segment["name"]: self.validate_field(name))
+                widget.setStyleSheet("font-size: 14px;")
         elif segment["type"] == "combo":
             widget = QComboBox()
             widget.setMinimumHeight(30)
             widget.addItems(segment["options"])
-            widget.currentTextChanged.connect(lambda: self.validate_field(segment["name"]))
+            if segment.get("editable", True):
+                widget.currentTextChanged.connect(lambda text, name=segment["name"]: self.validate_field(name))
+            else:
+                widget.setEnabled(False)
+            widget.setStyleSheet("font-size: 14px;")
         elif segment["type"] == "date":
             widget = QDateEdit()
             widget.setMinimumHeight(30)
             widget.setCalendarPopup(True)
             widget.setDate(QDate.currentDate())
-            widget.dateChanged.connect(lambda: self.validate_field(segment["name"]))
+            if segment.get("editable", True):
+                widget.dateChanged.connect(lambda date, name=segment["name"]: self.validate_field(name))
+            else:
+                widget.setReadOnly(True)
+            widget.setStyleSheet("font-size: 14px;")
         elif segment["type"] == "spinbox":
             widget = QSpinBox()
             widget.setMinimumHeight(30)
             widget.setMinimum(1)
-            widget.valueChanged.connect(lambda: self.validate_field(segment["name"]))
+            if segment.get("editable", True):
+                widget.valueChanged.connect(lambda value, name=segment["name"]: self.validate_field(name))
+            else:
+                widget.setReadOnly(True)
+            widget.setStyleSheet("font-size: 14px;")
         elif segment["type"] == "hidden":
             widget = QLineEdit()
             widget.setVisible(False)
-        widget.setStyleSheet("font-size: 14px;")
         return widget
 
     def clear_form(self):
@@ -235,12 +262,20 @@ class FilenameGenerator(QMainWindow):
             value = self.get_input_value(field_name)
             if re.match(segment["validation"], value):
                 self.inputs[field_name].setStyleSheet("border: 1px solid green;")
+                self.update_indicator(field_name, True)
             else:
                 self.inputs[field_name].setStyleSheet("border: 1px solid red;")
+                self.update_indicator(field_name, False)
         elif segment and segment["type"] != "hidden":
-            # If no validation is present, remove any existing style
+            # If no validation is present, consider it valid after interaction
             self.inputs[field_name].setStyleSheet("")
+            self.update_indicator(field_name, True)
         self.update_preview()
+
+    def update_indicator(self, field_name, is_valid):
+        if field_name in self.indicators:
+            self.indicators[field_name].setText("✅" if is_valid else "❌")
+            self.indicators[field_name].setStyleSheet("color: green;" if is_valid else "color: red;")
 
     def update_preview(self, initial=False):
         filename_parts = []

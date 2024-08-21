@@ -133,16 +133,6 @@
             }
         ],
         "optional_suffixes": [
-            {
-                "name": "babycap",
-                "label": "Baby Cap",
-                "type": "checkbox"
-            },
-            {
-                "name": "speakers",
-                "label": "Speakers",
-                "type": "checkbox"
-            }
         ]
     },
     "HealX": {
