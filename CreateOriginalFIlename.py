@@ -375,7 +375,7 @@ class FilenameGenerator(QMainWindow):
         self.result_layout.addWidget(self.copy_button)
         
         self.layout.addWidget(self.result_frame)
-        self.result_frame.hide()
+        #self.result_frame.hide()
         
         self.generate_button = QPushButton("Generate Filename")
         self.generate_button.clicked.connect(self.generate_filename)
