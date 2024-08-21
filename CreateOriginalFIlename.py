@@ -81,7 +81,6 @@ class FilenameGenerator(QMainWindow):
         self.scroll_area.setStyleSheet("background-color: white")
         self.scroll_area.setWidgetResizable(True)
         self.scroll_content = QWidget()
-        self.form_layout = QFormLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
         self.filename_layout.addWidget(self.scroll_area)
         
@@ -180,12 +179,29 @@ class FilenameGenerator(QMainWindow):
         self.clear_form()
         preset = FILENAME_CONFIG[preset_name]
         
+        # Create a new widget for the scroll area content
+        self.scroll_content = QWidget()
+        
+        # Create a horizontal layout for two columns
+        columns_layout = QHBoxLayout(self.scroll_content)
+        left_form = QFormLayout()
+        right_form = QFormLayout()
+        columns_layout.addLayout(left_form)
+        columns_layout.addLayout(right_form)
+        
+        # Set the new widget as the scroll area's widget
+        self.scroll_area.setWidget(self.scroll_content)
+        
+        total_fields = len(preset["segments"]) + len(preset["optional_suffixes"])
+        fields_per_column = (total_fields + 1) // 2  # Round up division
+        
+        field_count = 0
         for segment in preset["segments"]:
             widget = self.create_widget(segment)
             row_layout = QHBoxLayout()
             row_layout.addWidget(widget)
             
-            if segment.get("editable", True):  # Only add indicator for editable fields
+            if segment.get("editable", True):
                 indicator = QLabel("❌")  # Red X
                 indicator.setStyleSheet("color: red; font-size: 16px;")
                 self.indicators[segment["name"]] = indicator
@@ -193,14 +209,25 @@ class FilenameGenerator(QMainWindow):
             
             row_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
             
-            self.form_layout.addRow(segment["label"], row_layout)
+            if field_count < fields_per_column:
+                left_form.addRow(segment["label"], row_layout)
+            else:
+                right_form.addRow(segment["label"], row_layout)
+            
             self.inputs[segment["name"]] = widget
+            field_count += 1
         
         for suffix in preset["optional_suffixes"]:
             widget = QCheckBox(suffix["label"])
             widget.stateChanged.connect(lambda state, name=suffix["name"]: self.update_indicator(name, state))
-            self.form_layout.addRow("", widget)
+            
+            if field_count < fields_per_column:
+                left_form.addRow("", widget)
+            else:
+                right_form.addRow("", widget)
+            
             self.inputs[suffix["name"]] = widget
+            field_count += 1
 
         # Set initial preview template
         self.update_preview(initial=True)
@@ -251,9 +278,20 @@ class FilenameGenerator(QMainWindow):
         return widget
 
     def clear_form(self):
-        while self.form_layout.rowCount() > 0:
-            self.form_layout.removeRow(0)
+        if self.scroll_content.layout() is not None:
+            # Clear the existing layouts
+            for i in reversed(range(self.scroll_content.layout().count())):
+                layout = self.scroll_content.layout().itemAt(i).layout()
+                if layout is not None:
+                    for j in reversed(range(layout.rowCount())):
+                        layout.removeRow(j)
+            # Remove the column layouts
+            while self.scroll_content.layout().count() > 0:
+                item = self.scroll_content.layout().takeAt(0)
+                if item.layout():
+                    item.layout().setParent(None)
         self.inputs.clear()
+        self.indicators.clear()
 
     def validate_field(self, field_name):
         preset = FILENAME_CONFIG[self.preset_combo.currentText()]
