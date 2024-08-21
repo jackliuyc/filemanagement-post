@@ -125,6 +125,7 @@ class FilenameGenerator(QMainWindow):
         self.copy_button.setIcon(QIcon.fromTheme("edit-copy"))
         self.copy_button.setToolTip("Copy to Clipboard")
         self.copy_button.clicked.connect(self.copy_to_clipboard)
+        self.copy_button.setEnabled(False)  # Initially disabled
         self.copy_button.setStyleSheet("""
             QPushButton {
                 background-color: #4A90E2;
@@ -137,6 +138,9 @@ class FilenameGenerator(QMainWindow):
             QPushButton:hover {
                 background-color: #3A7BC8;
             }
+            QPushButton:disabled {
+                background-color: #A0A0A0;
+            }
         """)
         self.result_layout.addWidget(self.copy_button)
         
@@ -144,6 +148,12 @@ class FilenameGenerator(QMainWindow):
         
         self.lock_button = QPushButton("Lock Filename")
         self.lock_button.clicked.connect(self.lock_filename)
+        self.lock_button.setEnabled(False)  # Initially disabled
+        self.lock_button.setStyleSheet("""
+            QPushButton:disabled {
+                background-color: #A0A0A0;
+            }
+        """)
         self.filename_layout.addWidget(self.lock_button)
         
         # JSON Sidecar Builder Tab
@@ -269,6 +279,8 @@ class FilenameGenerator(QMainWindow):
                 }
             """)
             self.validation_label.setStyleSheet("font-size: 14px; color: #C62828;")
+            self.copy_button.setEnabled(False)
+            self.lock_button.setEnabled(False)
         else:
             self.validation_label.setText("All fields are valid.")
             self.validation_frame.setStyleSheet("""
@@ -281,6 +293,8 @@ class FilenameGenerator(QMainWindow):
                 }
             """)
             self.validation_label.setStyleSheet("font-size: 14px; color: #2E7D32;")
+            self.copy_button.setEnabled(True)
+            self.lock_button.setEnabled(True)
         
         self.result_label.setText(filename)
 
