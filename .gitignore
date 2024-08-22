@@ -1,0 +1,11 @@
+*.metadata.json
+*.csv
+*.xlsx
+*.xls
+*.pdf
+*.txt
+*.md
+*.html
+*.css
+*.js
+*.ts

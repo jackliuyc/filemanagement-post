@@ -173,6 +173,21 @@ class FilenameGenerator(QMainWindow):
         
         self.indicators = {}  # Add this line to store the indicator labels
 
+        # Add Reset Form and Reset Paradigm buttons
+        self.reset_buttons_layout = QHBoxLayout()
+        self.reset_form_button = QPushButton("Reset Form")
+        self.reset_form_button.clicked.connect(self.reset_form)
+        self.reset_paradigm_button = QPushButton("Reset Paradigm")
+        self.reset_paradigm_button.clicked.connect(self.reset_paradigm)
+        self.reset_buttons_layout.addWidget(self.reset_form_button)
+        self.reset_buttons_layout.addWidget(self.reset_paradigm_button)
+        self.filename_layout.addLayout(self.reset_buttons_layout)
+
+        # Add Change Paradigm button to JSON Sidecar Builder Tab
+        self.change_paradigm_button = QPushButton("Change Paradigm")
+        self.change_paradigm_button.clicked.connect(self.change_paradigm)
+        self.json_layout.addWidget(self.change_paradigm_button)
+
         self.load_preset("BIO")
 
     def load_preset(self, preset_name):
@@ -232,6 +247,10 @@ class FilenameGenerator(QMainWindow):
         # Set initial preview template
         self.update_preview(initial=True)
 
+        # Validate all fields after loading
+        for segment in preset["segments"]:
+            self.validate_field(segment["name"])
+
     def create_widget(self, segment):
         if segment["type"] == "text":
             widget = QLineEdit()
@@ -250,6 +269,8 @@ class FilenameGenerator(QMainWindow):
             widget.addItems(segment["options"])
             if segment.get("editable", True):
                 widget.currentTextChanged.connect(lambda text, name=segment["name"]: self.validate_field(name))
+                # Add this line to trigger validation on focus out
+                widget.focusOutEvent = lambda event, name=segment["name"]: self.validate_field(name)
             else:
                 widget.setEnabled(False)
             widget.setStyleSheet("font-size: 14px;")
@@ -296,18 +317,21 @@ class FilenameGenerator(QMainWindow):
     def validate_field(self, field_name):
         preset = FILENAME_CONFIG[self.preset_combo.currentText()]
         segment = next((s for s in preset["segments"] if s["name"] == field_name), None)
-        if segment and "validation" in segment and segment["type"] != "hidden":
+        if segment and segment["type"] != "hidden":
             value = self.get_input_value(field_name)
-            if re.match(segment["validation"], value):
-                self.inputs[field_name].setStyleSheet("border: 1px solid green;")
+            is_valid = True
+            if "validation" in segment:
+                is_valid = re.match(segment["validation"], value) is not None
+            
+            if is_valid:
+                if segment["type"] == "combo":
+                    self.inputs[field_name].setStyleSheet("border: 1px solid green; font-size: 14px;")
+                else:
+                    self.inputs[field_name].setStyleSheet("border: 1px solid green;")
                 self.update_indicator(field_name, True)
             else:
                 self.inputs[field_name].setStyleSheet("border: 1px solid red;")
                 self.update_indicator(field_name, False)
-        elif segment and segment["type"] != "hidden":
-            # If no validation is present, consider it valid after interaction
-            self.inputs[field_name].setStyleSheet("")
-            self.update_indicator(field_name, True)
         self.update_preview()
 
     def update_indicator(self, field_name, is_valid):
@@ -436,6 +460,33 @@ class FilenameGenerator(QMainWindow):
             with open(file_path, 'w') as f:
                 json.dump(json_data, f, indent=4)
             QMessageBox.information(self, "Success", "JSON sidecar saved successfully!")
+        return file_path  # Return the file path for use in change_paradigm method
+
+    def reset_form(self):
+        self.load_preset(self.preset_combo.currentText())
+
+    def reset_paradigm(self):
+        preset = FILENAME_CONFIG[self.preset_combo.currentText()]
+        paradigm_field = next((s for s in preset["segments"] if s["name"] == "paradigm"), None)
+        if paradigm_field:
+            self.inputs["paradigm"].setCurrentIndex(0)
+            self.validate_field("paradigm")
+
+    def change_paradigm(self):
+        # Save current JSON sidecar
+        self.save_json_sidecar()
+        
+        # Clear notes
+        self.notes_text.clear()
+        
+        # Switch back to the first tab
+        self.tab_widget.setCurrentIndex(0)
+        
+        # Reset the paradigm
+        self.reset_paradigm()
+        
+        # Disable the JSON tab
+        self.tab_widget.setTabEnabled(1, False)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

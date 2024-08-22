@@ -11,9 +11,10 @@
             },
             {
                 "name": "phase",
-                "label": "Phase",
+                "label": "Visit",
                 "type": "combo",
                 "options": [
+                    "",
                     "v1",
                     "v2",
                     "v3",
@@ -35,15 +36,17 @@
                     "v19",
                     "v20"
                 ],
-                "validation": "^v\\d+$",
-                "error_message": "Phase must be v1, v2, or v3"
+                "default": "",
+                "validation": "^(v\\d+)?$",
+                "error_message": "Phase must be empty or v1, v2, v3, etc."
             },
             {
                 "name": "day",
                 "label": "Day",
                 "type": "combo",
-                "default": "d1",
+                "default": "",
                 "options": [
+                    "",
                     "d1",
                     "d2",
                     "d3",
@@ -65,25 +68,28 @@
                     "d19",
                     "d20"
                 ],
-                "validation": "^d\\d+$",
-                "error_message": "Day must be d1, d2, or d3",
+                "validation": "^(d\\d+)?$",
+                "error_message": "Day must be empty or d1, d2, d3, etc.",
                 "no_leading_underscore": true
             },
             {
                 "name": "file_type",
-                "label": "File Type",
+                "label": "Paradigm",
                 "type": "combo",
+                "default": "",
                 "options": [
+                    "",
                     "rest",
                     "chirp",
-                    "SSCT",
-                    "RLEEG",
+                    "ssct",
+                    "gapassr",
+                    "rleeg",
                     "resteyesclosed",
-                    "Talk",
-                    "Listen",
-                    "VDAudio",
-                    "VDNoAudio",
-                    "Other"
+                    "talk",
+                    "listen",
+                    "vdaudio",
+                    "vdnoaudio",
+                    "other"
                 ],
                 "validation": "^[A-Za-z]+$",
                 "error_message": "File type must be alphabetic"
@@ -107,16 +113,19 @@
                 "label": "Date",
                 "type": "date",
                 "validation": "^\\d{2}-\\d{2}-\\d{4}$",
-                "error_message": "Date must be in MM-DD-YYYY format"
+                "error_message": "Date must be in MM-DD-YYYY format",
+                "no_leading_underscore": true
             },
             {
                 "name": "capsize",
                 "label": "Capsize",
                 "type": "combo",
                 "options": [
+                    "",
                     "adult",
                     "infant"
                 ],
+                "default": "",
                 "validation": "^adult|infant$",
                 "error_message": "Capsize must be adult or infant"
             },
@@ -125,9 +134,11 @@
                 "label": "Audio Source",
                 "type": "combo",
                 "options": [
+                    "",
                     "headphones",
                     "speakers"
                 ],
+                "default": "",
                 "validation": "^headphones|speakers$",
                 "error_message": "Audio source must be headphones or speaker"
             }
@@ -149,7 +160,9 @@
                 "name": "phase",
                 "label": "Phase",
                 "type": "combo",
+                "default": "",
                 "options": [
+                    "",
                     "v1pre",
                     "v1post",
                     "v2pre",
@@ -166,7 +179,9 @@
                 "name": "file_type",
                 "label": "File Type",
                 "type": "combo",
+                "default": "",
                 "options": [
+                    "",
                     "rest",
                     "resteyesclosed",
                     "chirp"
@@ -219,7 +234,9 @@
                 "name": "phase",
                 "label": "Phase",
                 "type": "combo",
+                "default": "",
                 "options": [
+                    "",
                     "v1",
                     "v2",
                     "v3"
@@ -231,7 +248,9 @@
                 "name": "file_type",
                 "label": "File Type",
                 "type": "combo",
+                "default": "",
                 "options": [
+                    "",
                     "rest",
                     "chirp",
                     "SSCT",
@@ -284,7 +303,9 @@
                 "name": "study",
                 "label": "Study",
                 "type": "combo",
+                "default": "",
                 "options": [
+                    "",
                     "BIO",
                     "ENTRAIN",
                     "U54SingleDose",
@@ -305,7 +326,9 @@
                 "name": "file_type",
                 "label": "File Type",
                 "type": "combo",
+                "default": "",
                 "options": [
+                    "",
                     "rest",
                     "chirp",
                     "SSCT",
