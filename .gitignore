@@ -1,4 +1,4 @@
-*.metadata.json
+*_metadata.json
 *.csv
 *.xlsx
 *.xls
