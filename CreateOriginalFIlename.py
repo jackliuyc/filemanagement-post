@@ -24,7 +24,7 @@ class FilenameGenerator(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("EEG Filename Generator")
-        self.setGeometry(100, 100, 600, 800)
+        self.setGeometry(100, 100, 800, 800)
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #E6F3FF;
@@ -187,6 +187,11 @@ class FilenameGenerator(QMainWindow):
         self.change_paradigm_button = QPushButton("Change Paradigm")
         self.change_paradigm_button.clicked.connect(self.change_paradigm)
         self.json_layout.addWidget(self.change_paradigm_button)
+
+        # Add debug mode checkbox
+        self.debug_mode_checkbox = QCheckBox("Debug Mode")
+        self.debug_mode_checkbox.stateChanged.connect(self.toggle_debug_mode)
+        self.filename_layout.addWidget(self.debug_mode_checkbox)
 
         self.load_preset("BIO")
 
@@ -433,13 +438,39 @@ class FilenameGenerator(QMainWindow):
         animation.setEasingCurve(QEasingCurve.Type.OutBack)
         animation.start()
 
+    def toggle_debug_mode(self, state):
+        is_debug = state == Qt.CheckState.Checked.value
+        self.tab_widget.setTabEnabled(1, is_debug)
+        if is_debug:
+            self.lock_button.setEnabled(True)
+            self.copy_button.setEnabled(True)
+        else:
+            self.validate_all_fields()
+
+    def validate_all_fields(self):
+        preset = FILENAME_CONFIG[self.preset_combo.currentText()]
+        all_valid = True
+        for segment in preset["segments"]:
+            if segment.get("editable", True):
+                self.validate_field(segment["name"])
+                if "validation" in segment:
+                    value = self.get_input_value(segment["name"])
+                    if not re.match(segment["validation"], value):
+                        all_valid = False
+        self.lock_button.setEnabled(all_valid)
+        self.copy_button.setEnabled(all_valid)
+        self.tab_widget.setTabEnabled(1, all_valid)
+
     def lock_filename(self):
-        self.generate_filename()
-        if not self.validation_label.text().startswith("Validation errors"):
-            self.tab_widget.setTabEnabled(1, True)
+        if not self.debug_mode_checkbox.isChecked():
+            self.generate_filename()
+            if not self.validation_label.text().startswith("Validation errors"):
+                self.tab_widget.setTabEnabled(1, True)
+                self.tab_widget.setCurrentIndex(1)
+                filename = self.result_label.text()
+                self.tab_widget.setTabText(1, f"{filename}_metadata.json")
+        else:
             self.tab_widget.setCurrentIndex(1)
-            filename = self.result_label.text()
-            self.tab_widget.setTabText(1, f"{filename}_metadata.json")
 
     def save_json_sidecar(self):
         filename = self.result_label.text()
