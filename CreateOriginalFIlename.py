@@ -242,6 +242,9 @@ class FilenameGenerator(QMainWindow):
         # Initialize output folder
         self.output_folder = ""
 
+        # Add output folder display at the bottom
+        self.create_output_folder_display()
+
         self.load_preset("BIO")
 
     def update_study_label(self):
@@ -600,7 +603,58 @@ class FilenameGenerator(QMainWindow):
         folder = QFileDialog.getExistingDirectory(self, "Select Output Folder")
         if folder:
             self.output_folder = folder
-            QMessageBox.information(self, "Output Folder", f"Selected output folder: {folder}")
+            self.update_output_folder_display()
+
+    def create_output_folder_display(self):
+        # Create a widget to hold the output folder display
+        output_folder_widget = QWidget()
+        output_folder_layout = QHBoxLayout(output_folder_widget)
+        output_folder_layout.setContentsMargins(10, 5, 10, 5)
+
+        # Create a label to display the current output folder
+        self.output_folder_label = QLabel("No output folder selected")
+        self.output_folder_label.setStyleSheet("""
+            font-size: 12px;
+            color: #666;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        """)
+
+        # Create a "Change" button
+        change_folder_button = QPushButton("Change")
+        change_folder_button.setStyleSheet("""
+            QPushButton {
+                font-size: 12px;
+                padding: 5px 10px;
+                background-color: #4A90E2;
+                color: white;
+                border: none;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #3A7BC8;
+            }
+        """)
+        change_folder_button.clicked.connect(self.select_output_folder)
+
+        # Add stretcher to push elements to the right
+        output_folder_layout.addStretch()
+        output_folder_layout.addWidget(self.output_folder_label)
+        output_folder_layout.addWidget(change_folder_button)
+
+        # Add the output folder display to the main layout
+        self.layout.addWidget(output_folder_widget)
+
+    def update_output_folder_display(self):
+        if self.output_folder:
+            display_path = (self.output_folder[:50] + '...') if len(self.output_folder) > 53 else self.output_folder
+            self.output_folder_label.setText(f"Output: {display_path}")
+            self.output_folder_label.setToolTip(self.output_folder)
+        else:
+            self.output_folder_label.setText("No output folder selected")
+            self.output_folder_label.setToolTip("")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
