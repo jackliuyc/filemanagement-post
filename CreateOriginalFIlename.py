@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation, 
                           QEasingCurve, QSettings)
 from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
-                         QCursor, QDesktopServices)
+                         QCursor, QDesktopServices, QTextCursor)
 
 
 # Write config to file
@@ -173,6 +173,37 @@ class FilenameGenerator(QMainWindow):
         self.tab_widget.addTab(self.json_tab, "JSON Sidecar Builder")
         self.tab_widget.setTabEnabled(1, False)  # Disable JSON tab initially
         
+        # Add quick tags section
+        self.quick_tags_scroll = QScrollArea()
+        self.quick_tags_scroll.setWidgetResizable(True)
+        self.quick_tags_scroll.setFixedHeight(80)  # Adjust height as needed
+        self.quick_tags_widget = QWidget()
+        self.quick_tags_layout = QHBoxLayout(self.quick_tags_widget)
+        self.quick_tags_scroll.setWidget(self.quick_tags_widget)
+        self.json_layout.addWidget(self.quick_tags_scroll)
+
+        # Define quick tags
+        quick_tags = ["Line Noise", "Movement", "Poor Audio", "Electrode Issues", "Drowsiness", "External Interference"]
+        for tag in quick_tags:
+            tag_button = QPushButton(tag)
+            tag_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4A90E2;
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    padding: 5px 10px;
+                    margin: 2px;
+                }
+                QPushButton:hover {
+                    background-color: #3A7BC8;
+                }
+            """)
+            tag_button.clicked.connect(lambda _, t=tag: self.add_tag_to_notes(t))
+            self.quick_tags_layout.addWidget(tag_button)
+
+        self.quick_tags_layout.addStretch()
+
         self.notes_label = QLabel("Notes about the recording:")
         self.json_layout.addWidget(self.notes_label)
         
@@ -531,6 +562,20 @@ class FilenameGenerator(QMainWindow):
         
         # Disable the JSON tab
         self.tab_widget.setTabEnabled(1, False)
+
+    def add_tag_to_notes(self, tag):
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_tag = f"[{timestamp}] {tag}"
+        
+        current_text = self.notes_text.toPlainText()
+        if current_text:
+            new_text = f"{current_text}\n\n{formatted_tag}"
+        else:
+            new_text = formatted_tag
+        
+        self.notes_text.setHtml(f"{self.notes_text.toHtml()}<p style='margin-top: 10px; margin-bottom: 10px; padding: 5px; background-color: #f0f0f0; border-left: 3px solid #4A90E2; font-family: Arial, sans-serif;'>{formatted_tag}</p>")
+        self.notes_text.moveCursor(QTextCursor.MoveOperation.End)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
