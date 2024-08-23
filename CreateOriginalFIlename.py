@@ -407,9 +407,9 @@ class FilenameGenerator(QMainWindow):
                 QFrame {
                     background-color: #FFEBEE;
                     border-radius: 8px;
-                    padding: 10px;
-                    margin-top: 10px;
-                    margin-bottom: 10px;
+                    padding: 5px;
+                    margin-top: 5px;
+                    margin-bottom: 5px;
                 }
             """)
             self.validation_label.setStyleSheet("font-size: 14px; color: #C62828;")
@@ -421,9 +421,9 @@ class FilenameGenerator(QMainWindow):
                 QFrame {
                     background-color: #E8F5E9;
                     border-radius: 8px;
-                    padding: 10px;
-                    margin-top: 10px;
-                    margin-bottom: 10px;
+                    padding: 5px;
+                    margin-top: 5px;
+                    margin-bottom: 5px;
                 }
             """)
             self.validation_label.setStyleSheet("font-size: 14px; color: #2E7D32;")
