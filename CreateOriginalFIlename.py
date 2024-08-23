@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                              QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
                              QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
                              QScrollArea, QFrame, QToolTip, QFileDialog, QTabWidget,
-                             QTextEdit)
+                             QTextEdit, QSizePolicy)
 from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation, 
                           QEasingCurve, QSettings)
 from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
@@ -100,6 +100,8 @@ class FilenameGenerator(QMainWindow):
         self.scroll_area = QScrollArea()
         self.scroll_area.setStyleSheet("background-color: white")
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.scroll_area.setMinimumHeight(400)  # Adjust this value as needed
         self.scroll_content = QWidget()
         self.scroll_area.setWidget(self.scroll_content)
         self.filename_layout.addWidget(self.scroll_area)
@@ -272,6 +274,10 @@ class FilenameGenerator(QMainWindow):
             
             self.inputs[suffix["name"]] = widget
             field_count += 1
+
+        # Adjust the scroll content widget's layout
+        self.scroll_content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.scroll_content.setLayout(columns_layout)
 
         # Set initial preview template
         self.update_preview(initial=True)
