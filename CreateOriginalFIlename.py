@@ -106,23 +106,6 @@ class FilenameGenerator(QMainWindow):
         
         self.inputs = {}
 
-        # Validation status box
-        self.validation_frame = QFrame()
-        self.validation_frame.setStyleSheet("""
-            QFrame {
-                background-color: #E8F5E9;
-                border-radius: 8px;
-                padding: 0px;
-                margin-top: 0px;
-                margin-bottom: 0px;
-            }
-        """)
-        self.validation_layout = QVBoxLayout(self.validation_frame)
-        self.validation_label = QLabel("Please fill in the fields to generate a filename.")
-        self.validation_label.setStyleSheet("font-size: 14px; color: #2E7D32;")
-        self.validation_layout.addWidget(self.validation_label)
-        self.filename_layout.addWidget(self.validation_frame)
-
         # Result frame (preview box)
         self.result_frame = QFrame()
         self.result_frame.setStyleSheet("""
@@ -250,23 +233,32 @@ class FilenameGenerator(QMainWindow):
         field_count = 0
         for segment in preset["segments"]:
             widget = self.create_widget(segment)
-            row_layout = QHBoxLayout()
-            row_layout.addWidget(widget)
+            row_layout = QVBoxLayout()  # Changed to QVBoxLayout
+            
+            # Add error label
+            error_label = QLabel()
+            error_label.setStyleSheet("color: red; font-size: 12px;")
+            error_label.setVisible(False)
+            row_layout.addWidget(error_label)
+            
+            widget_row = QHBoxLayout()
+            widget_row.addWidget(widget)
             
             if segment.get("editable", True):
                 indicator = QLabel("❌")  # Red X
                 indicator.setStyleSheet("color: red; font-size: 16px;")
                 self.indicators[segment["name"]] = indicator
-                row_layout.addWidget(indicator)
+                widget_row.addWidget(indicator)
             
-            row_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            widget_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            row_layout.addLayout(widget_row)
             
             if field_count < fields_per_column:
                 left_form.addRow(segment["label"], row_layout)
             else:
                 right_form.addRow(segment["label"], row_layout)
             
-            self.inputs[segment["name"]] = widget
+            self.inputs[segment["name"]] = {"widget": widget, "error_label": error_label}
             field_count += 1
         
         for suffix in preset["optional_suffixes"]:
@@ -355,6 +347,8 @@ class FilenameGenerator(QMainWindow):
         preset = FILENAME_CONFIG[self.preset_combo.currentText()]
         segment = next((s for s in preset["segments"] if s["name"] == field_name), None)
         if segment and segment["type"] != "hidden":
+            widget = self.inputs[field_name]["widget"]
+            error_label = self.inputs[field_name]["error_label"]
             value = self.get_input_value(field_name)
             is_valid = True
             if "validation" in segment:
@@ -362,13 +356,16 @@ class FilenameGenerator(QMainWindow):
             
             if is_valid:
                 if segment["type"] == "combo":
-                    self.inputs[field_name].setStyleSheet("border: 1px solid green; font-size: 14px;")
+                    widget.setStyleSheet("border: 1px solid green; font-size: 14px;")
                 else:
-                    self.inputs[field_name].setStyleSheet("border: 1px solid green;")
+                    widget.setStyleSheet("border: 1px solid green;")
                 self.update_indicator(field_name, True)
+                error_label.setVisible(False)
             else:
-                self.inputs[field_name].setStyleSheet("border: 1px solid red;")
+                widget.setStyleSheet("border: 1px solid red;")
                 self.update_indicator(field_name, False)
+                error_label.setText(segment["error_message"])
+                error_label.setVisible(True)
         self.update_preview()
 
     def update_indicator(self, field_name, is_valid):
@@ -379,7 +376,7 @@ class FilenameGenerator(QMainWindow):
     def update_preview(self, initial=False):
         filename_parts = []
         preset = FILENAME_CONFIG[self.preset_combo.currentText()]
-        error_messages = []
+        all_valid = True
         
         for segment in preset["segments"]:
             if initial:
@@ -388,7 +385,7 @@ class FilenameGenerator(QMainWindow):
                 value = self.get_input_value(segment["name"])
                 if "validation" in segment:
                     if not re.match(segment["validation"], value):
-                        error_messages.append(segment["error_message"])
+                        all_valid = False
             filename_parts.append(value)
         
         filename = ""
@@ -401,34 +398,12 @@ class FilenameGenerator(QMainWindow):
             if initial or self.inputs[suffix["name"]].isChecked():
                 filename += f"_{suffix['name']}"
         
-        if error_messages:
-            self.validation_label.setText("Validation errors:\n" + "\n".join(error_messages))
-            self.validation_frame.setStyleSheet("""
-                QFrame {
-                    background-color: #FFEBEE;
-                    border-radius: 8px;
-                    padding: 5px;
-                    margin-top: 5px;
-                    margin-bottom: 5px;
-                }
-            """)
-            self.validation_label.setStyleSheet("font-size: 14px; color: #C62828;")
-            self.copy_button.setEnabled(False)
-            self.lock_button.setEnabled(False)
-        else:
-            self.validation_label.setText("All fields are valid.")
-            self.validation_frame.setStyleSheet("""
-                QFrame {
-                    background-color: #E8F5E9;
-                    border-radius: 8px;
-                    padding: 5px;
-                    margin-top: 5px;
-                    margin-bottom: 5px;
-                }
-            """)
-            self.validation_label.setStyleSheet("font-size: 14px; color: #2E7D32;")
+        if all_valid:
             self.copy_button.setEnabled(True)
             self.lock_button.setEnabled(True)
+        else:
+            self.copy_button.setEnabled(False)
+            self.lock_button.setEnabled(False)
         
         self.result_label.setText(filename)
 
@@ -438,7 +413,7 @@ class FilenameGenerator(QMainWindow):
             self.animate_result_frame()
 
     def get_input_value(self, name):
-        widget = self.inputs[name]
+        widget = self.inputs[name]["widget"]
         if isinstance(widget, QLineEdit):
             return widget.text()
         elif isinstance(widget, QComboBox):
