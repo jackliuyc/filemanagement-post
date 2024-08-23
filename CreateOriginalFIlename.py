@@ -5,11 +5,11 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                              QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
                              QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
                              QScrollArea, QFrame, QToolTip, QFileDialog, QTabWidget,
-                             QTextEdit, QSizePolicy)
+                             QTextEdit, QSizePolicy, QMenuBar, QMenu)
 from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation, 
                           QEasingCurve, QSettings)
 from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
-                         QCursor, QDesktopServices, QTextCursor)
+                         QCursor, QDesktopServices, QTextCursor, QAction)
 
 
 # Write config to file
@@ -235,6 +235,12 @@ class FilenameGenerator(QMainWindow):
         self.debug_mode_checkbox = QCheckBox("Debug Mode")
         self.debug_mode_checkbox.stateChanged.connect(self.toggle_debug_mode)
         self.filename_layout.addWidget(self.debug_mode_checkbox)
+
+        # Add menu bar
+        self.create_menu_bar()
+
+        # Initialize output folder
+        self.output_folder = ""
 
         self.load_preset("BIO")
 
@@ -530,12 +536,16 @@ class FilenameGenerator(QMainWindow):
         for suffix in FILENAME_CONFIG[self.preset_combo.currentText()]["optional_suffixes"]:
             json_data[suffix["name"]] = self.inputs[suffix["name"]].isChecked()
         
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save JSON Sidecar", f"{filename}_metadata.json", "JSON Files (*.json)")
+        if self.output_folder:
+            file_path = f"{self.output_folder}/{filename}_metadata.json"
+        else:
+            file_path, _ = QFileDialog.getSaveFileName(self, "Save JSON Sidecar", f"{filename}_metadata.json", "JSON Files (*.json)")
+        
         if file_path:
             with open(file_path, 'w') as f:
                 json.dump(json_data, f, indent=4)
-            QMessageBox.information(self, "Success", "JSON sidecar saved successfully!")
-        return file_path  # Return the file path for use in change_paradigm method
+            QMessageBox.information(self, "Success", f"JSON sidecar saved successfully to {file_path}")
+        return file_path
 
     def reset_form(self):
         self.load_preset(self.preset_combo.currentText())
@@ -576,6 +586,21 @@ class FilenameGenerator(QMainWindow):
         
         self.notes_text.setHtml(f"{self.notes_text.toHtml()}<p style='margin-top: 10px; margin-bottom: 10px; padding: 5px; background-color: #f0f0f0; border-left: 3px solid #4A90E2; font-family: Arial, sans-serif;'>{formatted_tag}</p>")
         self.notes_text.moveCursor(QTextCursor.MoveOperation.End)
+
+    def create_menu_bar(self):
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('File')
+
+        # Add "Select Output Folder" action
+        select_folder_action = QAction('Select Output Folder', self)
+        select_folder_action.triggered.connect(self.select_output_folder)
+        file_menu.addAction(select_folder_action)
+
+    def select_output_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "Select Output Folder")
+        if folder:
+            self.output_folder = folder
+            QMessageBox.information(self, "Output Folder", f"Selected output folder: {folder}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
