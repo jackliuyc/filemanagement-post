@@ -21,10 +21,15 @@ with open('filename_config.json', 'r') as f:
     FILENAME_CONFIG = json.load(f)
 
 class FilenameGenerator(QMainWindow):
+
     def __init__(self):
         super().__init__()
+        
+        # Window setup
         self.setWindowTitle("EEG Filename Generator")
-        self.setGeometry(100, 100, 800, 800)
+        self.setGeometry(100, 100, 1000, 600)
+        
+        # Set global stylesheet
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #E6F3FF;
@@ -59,24 +64,39 @@ class FilenameGenerator(QMainWindow):
             }
         """)
         
+        # Central widget and main layout setup
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
         
+        # Add study label in the upper right
+        self.study_label = QLabel()
+        self.study_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        self.study_label.setStyleSheet("""
+            font-size: 24px;
+            font-weight: bold;
+            color: #4A90E2;
+            margin: 4px;
+        """)
+        self.layout.addWidget(self.study_label)
+        
+        # Tab widget setup
         self.tab_widget = QTabWidget()
         self.layout.addWidget(self.tab_widget)
         
         # Filename Generator Tab
         self.filename_tab = QWidget()
         self.filename_layout = QVBoxLayout(self.filename_tab)
-        self.tab_widget.addTab(self.filename_tab, "Filename Generator")
+        self.tab_widget.addTab(self.filename_tab, "Perfect Filename")
         
+        # Preset combo box
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(FILENAME_CONFIG.keys())
         self.preset_combo.currentTextChanged.connect(self.load_preset)
         self.filename_layout.addWidget(QLabel("Select Preset:"))
         self.filename_layout.addWidget(self.preset_combo)
         
+        # Scroll area for input fields
         self.scroll_area = QScrollArea()
         self.scroll_area.setStyleSheet("background-color: white")
         self.scroll_area.setWidgetResizable(True)
@@ -86,16 +106,15 @@ class FilenameGenerator(QMainWindow):
         
         self.inputs = {}
 
-        
-        # Add validation status box
+        # Validation status box
         self.validation_frame = QFrame()
         self.validation_frame.setStyleSheet("""
             QFrame {
                 background-color: #E8F5E9;
                 border-radius: 8px;
-                padding: 10px;
-                margin-top: 10px;
-                margin-bottom: 10px;
+                padding: 0px;
+                margin-top: 0px;
+                margin-bottom: 0px;
             }
         """)
         self.validation_layout = QVBoxLayout(self.validation_frame)
@@ -104,7 +123,7 @@ class FilenameGenerator(QMainWindow):
         self.validation_layout.addWidget(self.validation_label)
         self.filename_layout.addWidget(self.validation_frame)
 
-        # Modify result frame (preview box)
+        # Result frame (preview box)
         self.result_frame = QFrame()
         self.result_frame.setStyleSheet("""
             QFrame {
@@ -112,14 +131,16 @@ class FilenameGenerator(QMainWindow):
                 border: 2px solid #4CAF50;
                 border-radius: 6px;
                 padding: 8px;
-                margin-top: 8px;
-                margin-bottom: 8px;
+                margin-top: 5px;
+                margin-bottom: 5px;
             }
         """)
         self.result_layout = QHBoxLayout(self.result_frame)
         self.result_label = QLabel()
         self.result_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #2E7D32;")
         self.result_layout.addWidget(self.result_label)
+        
+        # Copy button
         self.copy_button = QPushButton("Copy")
         self.copy_button.setIcon(QIcon.fromTheme("edit-copy"))
         self.copy_button.setToolTip("Copy to Clipboard")
@@ -145,6 +166,7 @@ class FilenameGenerator(QMainWindow):
         
         self.filename_layout.addWidget(self.result_frame)
         
+        # Lock filename button
         self.lock_button = QPushButton("Lock Filename")
         self.lock_button.clicked.connect(self.lock_filename)
         self.lock_button.setEnabled(False)  # Initially disabled
@@ -154,6 +176,11 @@ class FilenameGenerator(QMainWindow):
             }
         """)
         self.filename_layout.addWidget(self.lock_button)
+
+        # Update study label and connect to preset changes
+        self.update_study_label()
+        self.preset_combo.currentTextChanged.connect(self.update_study_label)
+
         
         # JSON Sidecar Builder Tab
         self.json_tab = QWidget()
@@ -194,6 +221,11 @@ class FilenameGenerator(QMainWindow):
         self.filename_layout.addWidget(self.debug_mode_checkbox)
 
         self.load_preset("BIO")
+
+    def update_study_label(self):
+        current_preset = self.preset_combo.currentText()
+        study_default = FILENAME_CONFIG[current_preset]["segments"][0]["default"]
+        self.study_label.setText(study_default)
 
     def load_preset(self, preset_name):
         self.clear_form()
