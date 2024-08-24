@@ -1,6 +1,8 @@
 import sys
 import json
 import re
+import os
+from datetime import datetime
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, 
                              QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
                              QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
@@ -208,6 +210,7 @@ class FilenameGenerator(QMainWindow):
         self.json_layout.addWidget(self.notes_label)
         
         self.notes_text = QTextEdit()
+        self.notes_text.textChanged.connect(self.notes_text_changed)
         self.json_layout.addWidget(self.notes_text)
         
         self.save_json_button = QPushButton("Save JSON Sidecar")
@@ -221,7 +224,7 @@ class FilenameGenerator(QMainWindow):
         self.reset_form_button = QPushButton("Reset Form")
         self.reset_form_button.clicked.connect(self.reset_form)
         self.reset_paradigm_button = QPushButton("Reset Paradigm")
-        self.reset_paradigm_button.clicked.connect(self.reset_paradigm)
+        self.reset_paradigm_button.clicked.connect(self.reset_form)  # Changed from self.reset_paradigm to self.reset_form
         self.reset_buttons_layout.addWidget(self.reset_form_button)
         self.reset_buttons_layout.addWidget(self.reset_paradigm_button)
         self.filename_layout.addLayout(self.reset_buttons_layout)
@@ -239,13 +242,37 @@ class FilenameGenerator(QMainWindow):
         # Add menu bar
         self.create_menu_bar()
 
-        # Initialize output folder
-        self.output_folder = ""
+        # Initialize output folder as the current working directory
+        self.output_folder = os.getcwd()
+
+        # Add save notification light
+        self.save_light = QLabel()
+        self.save_light.setFixedSize(20, 20)
+        self.save_light.setStyleSheet("""
+            background-color: #808080;
+            border-radius: 10px;
+        """)
+        self.json_layout.addWidget(self.save_light, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Add output folder display at the bottom
         self.create_output_folder_display()
 
         self.load_preset("BIO")
+
+        # Add these lines in the __init__ method after initializing the JSON tab
+        self.auto_save_timer = QTimer(self)
+        self.auto_save_timer.timeout.connect(self.auto_save_json)
+        self.auto_save_timer.start(30000)  # Auto-save every 30 seconds
+
+        # Add Save Now button
+        self.save_now_button = QPushButton("Save Now")
+        self.save_now_button.clicked.connect(self.save_json_now)
+        self.json_layout.addWidget(self.save_now_button)
+
+        # Add last saved message label
+        self.last_saved_label = QLabel("Not saved yet")
+        self.last_saved_label.setStyleSheet("font-size: 10px; color: #666;")
+        self.json_layout.addWidget(self.last_saved_label)
 
     def update_study_label(self):
         current_preset = self.preset_combo.currentText()
@@ -325,6 +352,9 @@ class FilenameGenerator(QMainWindow):
         # Validate all fields after loading
         for segment in preset["segments"]:
             self.validate_field(segment["name"])
+
+        # Add this line at the end of the method
+        self.update_json_tab()
 
     def create_widget(self, segment):
         if segment["type"] == "text":
@@ -413,11 +443,13 @@ class FilenameGenerator(QMainWindow):
                 error_label.setText(segment["error_message"])
                 error_label.setVisible(True)
         self.update_preview()
+        self.update_json_tab()
 
     def update_indicator(self, field_name, is_valid):
         if field_name in self.indicators:
             self.indicators[field_name].setText("✅" if is_valid else "❌")
             self.indicators[field_name].setStyleSheet("color: green;" if is_valid else "color: red;")
+        self.update_json_tab()
 
     def update_preview(self, initial=False):
         filename_parts = []
@@ -525,56 +557,71 @@ class FilenameGenerator(QMainWindow):
         else:
             self.tab_widget.setCurrentIndex(1)
 
-    def save_json_sidecar(self):
+    def update_json_tab(self):
+        if self.tab_widget.isTabEnabled(1):
+            self.generate_json_data()
+            self.update_notes_from_json()
+
+    def generate_json_data(self):
         filename = self.result_label.text()
-        json_data = {
+        self.json_data = {
             "filename": filename,
             "notes": self.notes_text.toPlainText()
         }
         
-        # Add all data from the first tab
         for segment in FILENAME_CONFIG[self.preset_combo.currentText()]["segments"]:
-            json_data[segment["name"]] = self.get_input_value(segment["name"])
+            self.json_data[segment["name"]] = self.get_input_value(segment["name"])
         
         for suffix in FILENAME_CONFIG[self.preset_combo.currentText()]["optional_suffixes"]:
-            json_data[suffix["name"]] = self.inputs[suffix["name"]].isChecked()
-        
+            self.json_data[suffix["name"]] = self.inputs[suffix["name"]].isChecked()
+
+    def update_notes_from_json(self):
+        if hasattr(self, 'json_data') and 'notes' in self.json_data:
+            self.notes_text.setPlainText(self.json_data['notes'])
+
+    def auto_save_json(self):
+        if self.tab_widget.currentIndex() == 1 and self.output_folder:
+            self.save_json_sidecar(auto_save=True)
+
+    def save_json_now(self):
         if self.output_folder:
-            file_path = f"{self.output_folder}/{filename}_metadata.json"
+            self.save_json_sidecar()
         else:
-            file_path, _ = QFileDialog.getSaveFileName(self, "Save JSON Sidecar", f"{filename}_metadata.json", "JSON Files (*.json)")
-        
-        if file_path:
-            with open(file_path, 'w') as f:
-                json.dump(json_data, f, indent=4)
-            QMessageBox.information(self, "Success", f"JSON sidecar saved successfully to {file_path}")
-        return file_path
+            QMessageBox.warning(self, "No Output Folder", "Please select an output folder first.")
 
-    def reset_form(self):
-        self.load_preset(self.preset_combo.currentText())
+    def save_json_sidecar(self, auto_save=False):
+        self.generate_json_data()
+        filename = self.json_data["filename"]
+        
+        file_path = os.path.join(self.output_folder, f"{filename}_metadata.json")
+        with open(file_path, 'w') as f:
+            json.dump(self.json_data, f, indent=4)
+        
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_saved_label.setText(f"Last saved: {current_time}")
+        
+        # Flash the save light
+        self.flash_save_light()
 
-    def reset_paradigm(self):
-        preset = FILENAME_CONFIG[self.preset_combo.currentText()]
-        paradigm_field = next((s for s in preset["segments"] if s["name"] == "paradigm"), None)
-        if paradigm_field:
-            self.inputs["paradigm"].setCurrentIndex(0)
-            self.validate_field("paradigm")
+    def flash_save_light(self):
+        self.save_light.setStyleSheet("""
+            background-color: #00FF00;
+            border-radius: 10px;
+        """)
+        QTimer.singleShot(500, self.reset_save_light)
 
-    def change_paradigm(self):
-        # Save current JSON sidecar
-        self.save_json_sidecar()
-        
-        # Clear notes
-        self.notes_text.clear()
-        
-        # Switch back to the first tab
-        self.tab_widget.setCurrentIndex(0)
-        
-        # Reset the paradigm
-        self.reset_paradigm()
-        
-        # Disable the JSON tab
-        self.tab_widget.setTabEnabled(1, False)
+    def reset_save_light(self):
+        self.save_light.setStyleSheet("""
+            background-color: #808080;
+            border-radius: 10px;
+        """)
+
+    def select_output_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "Select Output Folder", self.output_folder)
+        if folder:
+            self.output_folder = folder
+            self.update_output_folder_display()
+            self.save_json_now()  # Save immediately after selecting the folder
 
     def add_tag_to_notes(self, tag):
         from datetime import datetime
@@ -589,6 +636,10 @@ class FilenameGenerator(QMainWindow):
         
         self.notes_text.setHtml(f"{self.notes_text.toHtml()}<p style='margin-top: 10px; margin-bottom: 10px; padding: 5px; background-color: #f0f0f0; border-left: 3px solid #4A90E2; font-family: Arial, sans-serif;'>{formatted_tag}</p>")
         self.notes_text.moveCursor(QTextCursor.MoveOperation.End)
+        self.auto_save_json()
+
+    def notes_text_changed(self):
+        self.auto_save_json()
 
     def create_menu_bar(self):
         menubar = self.menuBar()
@@ -598,12 +649,6 @@ class FilenameGenerator(QMainWindow):
         select_folder_action = QAction('Select Output Folder', self)
         select_folder_action.triggered.connect(self.select_output_folder)
         file_menu.addAction(select_folder_action)
-
-    def select_output_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Output Folder")
-        if folder:
-            self.output_folder = folder
-            self.update_output_folder_display()
 
     def create_output_folder_display(self):
         # Create a widget to hold the output folder display
@@ -655,6 +700,34 @@ class FilenameGenerator(QMainWindow):
         else:
             self.output_folder_label.setText("No output folder selected")
             self.output_folder_label.setToolTip("")
+
+    def reset_form(self):
+        current_preset = self.preset_combo.currentText()
+        self.load_preset(current_preset)
+
+    def change_paradigm(self):
+        # Implement the logic for changing the paradigm here
+        current_preset = self.preset_combo.currentText()
+        paradigm_field = next((segment for segment in FILENAME_CONFIG[current_preset]["segments"] if segment.get("is_paradigm", False)), None)
+        
+        if paradigm_field:
+            paradigm_widget = self.inputs[paradigm_field["name"]]["widget"]
+            if isinstance(paradigm_widget, QComboBox):
+                current_index = paradigm_widget.currentIndex()
+                next_index = (current_index + 1) % paradigm_widget.count()
+                paradigm_widget.setCurrentIndex(next_index)
+            elif isinstance(paradigm_widget, QLineEdit):
+                # For text input, you might want to clear it or set a default value
+                paradigm_widget.clear()
+            
+            # Validate the field after changing
+            self.validate_field(paradigm_field["name"])
+            
+            # Update the preview and JSON tab
+            self.update_preview()
+            self.update_json_tab()
+        else:
+            QMessageBox.warning(self, "No Paradigm Field", "No paradigm field found in the current preset.")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
