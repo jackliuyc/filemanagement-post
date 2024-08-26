@@ -264,11 +264,6 @@ class FilenameGenerator(QMainWindow):
         self.auto_save_timer.timeout.connect(self.auto_save_json)
         self.auto_save_timer.start(30000)  # Auto-save every 30 seconds
 
-        # Add Save Now button
-        self.save_now_button = QPushButton("Save Now")
-        self.save_now_button.clicked.connect(self.save_json_now)
-        self.json_layout.addWidget(self.save_now_button)
-
         # Add last saved message label
         self.last_saved_label = QLabel("Not saved yet")
         self.last_saved_label.setStyleSheet("font-size: 10px; color: #666;")
@@ -583,13 +578,11 @@ class FilenameGenerator(QMainWindow):
         if self.tab_widget.currentIndex() == 1 and self.output_folder:
             self.save_json_sidecar(auto_save=True)
 
-    def save_json_now(self):
-        if self.output_folder:
-            self.save_json_sidecar()
-        else:
-            QMessageBox.warning(self, "No Output Folder", "Please select an output folder first.")
-
     def save_json_sidecar(self, auto_save=False):
+        if not self.output_folder:
+            QMessageBox.warning(self, "No Output Folder", "Please select an output folder first.")
+            return
+
         self.generate_json_data()
         filename = self.json_data["filename"]
         
@@ -602,6 +595,9 @@ class FilenameGenerator(QMainWindow):
         
         # Flash the save light
         self.flash_save_light()
+
+        if not auto_save:
+            QMessageBox.information(self, "Save Successful", f"JSON sidecar saved to:\n{file_path}")
 
     def flash_save_light(self):
         self.save_light.setStyleSheet("""
@@ -621,7 +617,7 @@ class FilenameGenerator(QMainWindow):
         if folder:
             self.output_folder = folder
             self.update_output_folder_display()
-            self.save_json_now()  # Save immediately after selecting the folder
+            self.auto_save_json()  # Auto-save after selecting the folder
 
     def add_tag_to_notes(self, tag):
         from datetime import datetime
