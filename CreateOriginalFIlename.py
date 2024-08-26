@@ -591,6 +591,24 @@ class FilenameGenerator(QMainWindow):
             "notes": self.notes_text.toPlainText()
         }
         
+        session_parts = []
+        current_preset = self.preset_combo.currentText()
+        
+        for segment in FILENAME_CONFIG[current_preset]["segments"]:
+            value = self.get_input_value(segment["name"])
+            self.json_data[segment["name"]] = value
+            
+            # Add to session_parts if it's not the file_type
+            if segment["name"] != "file_type":
+                session_parts.append(value)
+        
+        # Join session parts with underscores
+        self.json_data["session"] = "_".join(session_parts)
+        
+        for suffix in FILENAME_CONFIG[current_preset]["optional_suffixes"]:
+            self.json_data[suffix["name"]] = self.inputs[suffix["name"]].isChecked()
+
+        
         for segment in FILENAME_CONFIG[self.preset_combo.currentText()]["segments"]:
             self.json_data[segment["name"]] = self.get_input_value(segment["name"])
         
