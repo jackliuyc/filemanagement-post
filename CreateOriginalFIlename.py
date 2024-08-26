@@ -534,14 +534,11 @@ class FilenameGenerator(QMainWindow):
 
     def validate_all_fields(self):
         preset = FILENAME_CONFIG[self.preset_combo.currentText()]
-        all_valid = True
         for segment in preset["segments"]:
             if segment.get("editable", True):
                 self.validate_field(segment["name"])
-                if "validation" in segment:
-                    value = self.get_input_value(segment["name"])
-                    if not re.match(segment["validation"], value):
-                        all_valid = False
+        
+        all_valid = all(self.indicators[field].text() == "✅" for field in self.indicators)
         self.lock_button.setEnabled(all_valid)
         self.copy_button.setEnabled(all_valid)
         self.tab_widget.setTabEnabled(1, all_valid)
@@ -549,11 +546,14 @@ class FilenameGenerator(QMainWindow):
     def lock_filename(self):
         if not self.debug_mode_checkbox.isChecked():
             self.generate_filename()
-            if not self.validation_label.text().startswith("Validation errors"):
+            all_valid = all(self.indicators[field].text() == "✅" for field in self.indicators)
+            if all_valid:
                 self.tab_widget.setTabEnabled(1, True)
                 self.tab_widget.setCurrentIndex(1)
                 filename = self.result_label.text()
                 self.tab_widget.setTabText(1, f"{filename}_metadata.json")
+            else:
+                QMessageBox.warning(self, "Validation Error", "Please correct all fields before locking the filename.")
         else:
             self.tab_widget.setCurrentIndex(1)
 
