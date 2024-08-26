@@ -7,9 +7,9 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                              QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
                              QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
                              QScrollArea, QFrame, QToolTip, QFileDialog, QTabWidget,
-                             QTextEdit, QSizePolicy, QMenuBar, QMenu)
+                             QTextEdit, QSizePolicy, QMenuBar, QMenu, QGraphicsOpacityEffect)
 from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation, 
-                          QEasingCurve, QSettings)
+                          QEasingCurve, QSettings, QAbstractAnimation)
 from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
                          QCursor, QDesktopServices, QTextCursor, QAction)
 
@@ -439,6 +439,7 @@ class FilenameGenerator(QMainWindow):
                 error_label.setVisible(True)
         self.update_preview()
         self.update_json_tab()
+        self.clear_notes()  # Add this line to clear notes when any field is changed
 
     def update_indicator(self, field_name, is_valid):
         if field_name in self.indicators:
@@ -596,8 +597,31 @@ class FilenameGenerator(QMainWindow):
         # Flash the save light
         self.flash_save_light()
 
-        if not auto_save:
-            QMessageBox.information(self, "Save Successful", f"JSON sidecar saved to:\n{file_path}")
+        # Show a quick message that fades out
+        self.show_save_message()
+
+    def show_save_message(self):
+        save_message = QLabel("Saved", self)
+        save_message.setStyleSheet("""
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        """)
+        save_message.move(self.width() - save_message.width() - 20, self.height() - save_message.height() - 20)
+        save_message.show()
+
+        # Create fade out animation
+        fade_effect = QGraphicsOpacityEffect(save_message)
+        save_message.setGraphicsEffect(fade_effect)
+
+        fade_animation = QPropertyAnimation(fade_effect, b"opacity")
+        fade_animation.setDuration(2000)  # 2 seconds
+        fade_animation.setStartValue(1.0)
+        fade_animation.setEndValue(0.0)
+        fade_animation.finished.connect(save_message.deleteLater)
+        fade_animation.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
 
     def flash_save_light(self):
         self.save_light.setStyleSheet("""
@@ -702,7 +726,6 @@ class FilenameGenerator(QMainWindow):
         self.load_preset(current_preset)
 
     def change_paradigm(self):
-        # Implement the logic for changing the paradigm here
         current_preset = self.preset_combo.currentText()
         paradigm_field = next((segment for segment in FILENAME_CONFIG[current_preset]["segments"] if segment.get("is_paradigm", False)), None)
         
@@ -713,17 +736,19 @@ class FilenameGenerator(QMainWindow):
                 next_index = (current_index + 1) % paradigm_widget.count()
                 paradigm_widget.setCurrentIndex(next_index)
             elif isinstance(paradigm_widget, QLineEdit):
-                # For text input, you might want to clear it or set a default value
                 paradigm_widget.clear()
             
-            # Validate the field after changing
             self.validate_field(paradigm_field["name"])
-            
-            # Update the preview and JSON tab
             self.update_preview()
             self.update_json_tab()
+            self.clear_notes()  # Add this line to clear notes when paradigm is changed
         else:
             QMessageBox.warning(self, "No Paradigm Field", "No paradigm field found in the current preset.")
+
+    def clear_notes(self):
+        self.notes_text.clear()
+        if hasattr(self, 'json_data'):
+            self.json_data['notes'] = ''
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
