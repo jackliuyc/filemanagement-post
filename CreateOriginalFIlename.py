@@ -163,7 +163,6 @@ class FilenameGenerator(QMainWindow):
             }
         """)
         self.filename_layout.addWidget(self.lock_button)
-
         # Update study label and connect to preset changes
         self.update_study_label()
         self.preset_combo.currentTextChanged.connect(self.update_study_label)
@@ -178,16 +177,19 @@ class FilenameGenerator(QMainWindow):
         # Add quick tags section
         self.quick_tags_scroll = QScrollArea()
         self.quick_tags_scroll.setWidgetResizable(True)
-        self.quick_tags_scroll.setFixedHeight(80)  # Adjust height as needed
+        self.quick_tags_scroll.setMaximumHeight(200)  # Set maximum height instead of fixed
         self.quick_tags_widget = QWidget()
-        self.quick_tags_layout = QHBoxLayout(self.quick_tags_widget)
+        self.quick_tags_layout = QVBoxLayout(self.quick_tags_widget)
         self.quick_tags_scroll.setWidget(self.quick_tags_widget)
-        self.json_layout.addWidget(self.quick_tags_scroll)
+        self.json_layout.addWidget(self.quick_tags_scroll, 1)  # Set stretch factor to 1
 
         # Define quick tags
-        quick_tags = ["Line Noise", "Movement", "Poor Audio", "Electrode Issues", "Drowsiness", "External Interference"]
-        for tag in quick_tags:
+        quick_tags = ["Line Noise", "Movement", "Poor Audio", "Electrode Issues", "Drowsiness", "External Interference", "Removed Headphones", "Moving Around", "Talking", "Crying", "Jaw", "Invalid Data", "Other"]
+        
+        row_layout = QHBoxLayout()
+        for i, tag in enumerate(quick_tags):
             tag_button = QPushButton(tag)
+            tag_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             tag_button.setStyleSheet("""
                 QPushButton {
                     background-color: #4A90E2;
@@ -202,23 +204,33 @@ class FilenameGenerator(QMainWindow):
                 }
             """)
             tag_button.clicked.connect(lambda _, t=tag: self.add_tag_to_notes(t))
-            self.quick_tags_layout.addWidget(tag_button)
-
-        self.quick_tags_layout.addStretch()
+            row_layout.addWidget(tag_button)
+            
+            # Start a new row after every 4 buttons
+            if (i + 1) % 4 == 0 or i == len(quick_tags) - 1:
+                self.quick_tags_layout.addLayout(row_layout)
+                row_layout = QHBoxLayout()
 
         self.notes_label = QLabel("Notes about the recording:")
         self.json_layout.addWidget(self.notes_label)
         
         self.notes_text = QTextEdit()
         self.notes_text.textChanged.connect(self.notes_text_changed)
-        self.json_layout.addWidget(self.notes_text)
+        self.json_layout.addWidget(self.notes_text, 3)  # Set stretch factor to 3
         
+        button_layout = QHBoxLayout()
         self.save_json_button = QPushButton("Save JSON Sidecar")
         self.save_json_button.clicked.connect(self.save_json_sidecar)
-        self.json_layout.addWidget(self.save_json_button)
+        button_layout.addWidget(self.save_json_button)
+        
+        self.change_paradigm_button = QPushButton("Change Paradigm")
+        self.change_paradigm_button.clicked.connect(self.change_paradigm)
+        button_layout.addWidget(self.change_paradigm_button)
+        
+        self.json_layout.addLayout(button_layout)
         
         self.indicators = {}  # Add this line to store the indicator labels
-
+        
         # Add Reset Form and Reset Paradigm buttons
         self.reset_buttons_layout = QHBoxLayout()
         self.reset_form_button = QPushButton("Reset Form")
@@ -245,14 +257,20 @@ class FilenameGenerator(QMainWindow):
         # Initialize output folder as the current working directory
         self.output_folder = os.getcwd()
 
-        # Add save notification light
+        # Add save notification light and last saved message label
+        save_status_layout = QHBoxLayout()
         self.save_light = QLabel()
         self.save_light.setFixedSize(20, 20)
         self.save_light.setStyleSheet("""
             background-color: #808080;
             border-radius: 10px;
         """)
-        self.json_layout.addWidget(self.save_light, alignment=Qt.AlignmentFlag.AlignRight)
+        save_status_layout.addWidget(self.save_light)
+        self.last_saved_label = QLabel("Not saved yet")
+        self.last_saved_label.setStyleSheet("font-size: 10px; color: #666;")
+        save_status_layout.addWidget(self.last_saved_label)
+        save_status_layout.addStretch()
+        self.json_layout.addLayout(save_status_layout)
 
         # Add output folder display at the bottom
         self.create_output_folder_display()
@@ -263,11 +281,6 @@ class FilenameGenerator(QMainWindow):
         self.auto_save_timer = QTimer(self)
         self.auto_save_timer.timeout.connect(self.auto_save_json)
         self.auto_save_timer.start(30000)  # Auto-save every 30 seconds
-
-        # Add last saved message label
-        self.last_saved_label = QLabel("Not saved yet")
-        self.last_saved_label.setStyleSheet("font-size: 10px; color: #666;")
-        self.json_layout.addWidget(self.last_saved_label)
 
     def update_study_label(self):
         current_preset = self.preset_combo.currentText()
@@ -597,31 +610,7 @@ class FilenameGenerator(QMainWindow):
         # Flash the save light
         self.flash_save_light()
 
-        # Show a quick message that fades out
-        self.show_save_message()
 
-    def show_save_message(self):
-        save_message = QLabel("Saved", self)
-        save_message.setStyleSheet("""
-            background-color: #4CAF50;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
-        """)
-        save_message.move(self.width() - save_message.width() - 20, self.height() - save_message.height() - 20)
-        save_message.show()
-
-        # Create fade out animation
-        fade_effect = QGraphicsOpacityEffect(save_message)
-        save_message.setGraphicsEffect(fade_effect)
-
-        fade_animation = QPropertyAnimation(fade_effect, b"opacity")
-        fade_animation.setDuration(2000)  # 2 seconds
-        fade_animation.setStartValue(1.0)
-        fade_animation.setEndValue(0.0)
-        fade_animation.finished.connect(save_message.deleteLater)
-        fade_animation.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
 
     def flash_save_light(self):
         self.save_light.setStyleSheet("""
