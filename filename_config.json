@@ -92,7 +92,7 @@
                     "other"
                 ],
                 "validation": "^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
+                "error_message": "Paradigm must be selected."
             },
             {
                 "name": "subject_id",
@@ -135,12 +135,197 @@
                 "type": "combo",
                 "options": [
                     "",
-                    "headphones",
-                    "speakers"
+                    "audhp",
+                    "audsp"
                 ],
                 "default": "",
-                "validation": "^headphones|speakers$",
-                "error_message": "Audio source must be headphones or speaker"
+                "validation": "^audhp|audsp$",
+                "error_message": "Audio source must be audhp or speaker"
+            }
+        ],
+        "optional_suffixes": [
+        ]
+    },
+    "BIOENTRAIN": {
+        "segments": [
+            {
+                "name": "study1",
+                "label": "Study1",
+                "type": "text",
+                "default": "BIO",
+                "validation": "^BIO$",
+                "editable": false
+            },
+            {
+                "name": "phase1",
+                "label": "Visit1",
+                "type": "combo",
+                "options": [
+                    "",
+                    "v1",
+                    "v2",
+                    "v3",
+                    "v4",
+                    "v5",
+                    "v6",
+                    "v7",
+                    "v8",
+                    "v9",
+                    "v10",
+                    "v11",
+                    "v12",
+                    "v13",
+                    "v14",
+                    "v15",
+                    "v16",
+                    "v17",
+                    "v18",
+                    "v19",
+                    "v20"
+                ],
+                "default": "",
+                "validation": "^(v\\d+)?$",
+                "error_message": "Phase must be empty or v1, v2, v3, etc."
+            },
+            {
+                "name": "day1",
+                "label": "Day1",
+                "type": "combo",
+                "default": "",
+                "options": [
+                    "",
+                    "d1",
+                    "d2",
+                    "d3",
+                    "d4",
+                    "d5",
+                    "d6",
+                    "d7",
+                    "d8",
+                    "d9",
+                    "d10",
+                    "d11",
+                    "d12",
+                    "d13",
+                    "d14",
+                    "d15",
+                    "d16",
+                    "d17",
+                    "d18",
+                    "d19",
+                    "d20"
+                ],
+                "validation": "^(d\\d+)?$",
+                "error_message": "Day must be empty or d1, d2, d3, etc.",
+                "no_leading_underscore": true
+            },
+            {
+                "name": "study2",
+                "label": "Study2",
+                "type": "text",
+                "default": "ENTRAIN",
+                "validation": "^ENTRAIN$",
+                "editable": false
+            },
+            {
+                "name": "phase2",
+                "label": "Phase2",
+                "type": "combo",
+                "options": [
+                    "",
+                    "v1",
+                    "v2",
+                    "v3"
+                ],
+                "default": "",
+                "validation": "^(v\\d+)?$",
+                "error_message": "Phase must be empty or v1, v2, v3, etc."
+            },
+            {
+                "name": "day2",
+                "label": "Day2",
+                "type": "combo",
+                "default": "",
+                "options": [
+                    "",
+                    "d1",
+                    "d2",
+                    "d3",
+                    "d4"
+                ],
+                "validation": "^(d\\d+)?$",
+                "error_message": "Day must be empty or d1, d2, d3, etc.",
+                "no_leading_underscore": true
+            },
+            {
+                "name": "file_type",
+                "label": "Paradigm",
+                "type": "combo",
+                "default": "",
+                "options": [
+                    "",
+                    "rest",
+                    "chirp",
+                    "ssct",
+                    "gapassr",
+                    "rleeg",
+                    "resteyesclosed",
+                    "talk",
+                    "listen",
+                    "vdaudio",
+                    "vdnoaudio",
+                    "other"
+                ],
+                "validation": "^[A-Za-z]+$",
+                "error_message": "Paradigm must be selected."
+            },
+            {
+                "name": "subject_id",
+                "label": "Subject ID",
+                "type": "text",
+                "validation": "^\\d{5}$",
+                "error_message": "Subject ID must be 5 digits"
+            },
+            {
+                "name": "subject_initials",
+                "label": "Subject Initials",
+                "type": "text",
+                "validation": "^[A-Z]{2,3}$",
+                "error_message": "Subject Initials must be 2 uppercase letters"
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "validation": "^\\d{2}-\\d{2}-\\d{4}$",
+                "error_message": "Date must be in MM-DD-YYYY format",
+                "no_leading_underscore": false
+            },
+            {
+                "name": "capsize",
+                "label": "Capsize",
+                "type": "combo",
+                "options": [
+                    "",
+                    "adult",
+                    "infant"
+                ],
+                "default": "",
+                "validation": "^adult|infant$",
+                "error_message": "Capsize must be adult or infant"
+            },
+            {
+                "name": "audio_source",
+                "label": "Audio Source",
+                "type": "combo",
+                "options": [
+                    "",
+                    "audhp",
+                    "audsp"
+                ],
+                "default": "",
+                "validation": "^audhp|audsp$",
+                "error_message": "Audio source must be audhp or speaker"
             }
         ],
         "optional_suffixes": [
@@ -183,11 +368,12 @@
                 "options": [
                     "",
                     "rest",
+                    "resteyesopen",
                     "resteyesclosed",
                     "chirp"
                 ],
                 "validation": "^[A-Za-z]+$",
-                "error_message": "Paradigm must be alphabetic"
+                "error_message": "Paradigm must be selected."
             },
             {
                 "name": "HX",
@@ -217,6 +403,19 @@
                 "type": "date",
                 "validation": "^\\d{2}-\\d{2}-\\d{4}$",
                 "error_message": "Date must be in MM-DD-YYYY format"
+            },
+            {
+                "name": "audio_source",
+                "label": "Audio Source",
+                "type": "combo",
+                "options": [
+                    "",
+                    "audhp",
+                    "audsp"
+                ],
+                "default": "",
+                "validation": "^audhp|audsp$",
+                "error_message": "Audio source must be audhp or speaker"
             }
         ],
         "optional_suffixes": []
@@ -262,7 +461,7 @@
                     "Other"
                 ],
                 "validation": "^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
+                "error_message": "Paradigm must be selected."
             },
             {
                 "name": "subject_id",
@@ -340,7 +539,7 @@
                     "Other"
                 ],
                 "validation": "^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
+                "error_message": "Paradigm must be selected."
             },
             {
                 "name": "subject_id",
@@ -371,8 +570,8 @@
                 "type": "checkbox"
             },
             {
-                "name": "speakers",
-                "label": "Speakers",
+                "name": "audsp",
+                "label": "audsp",
                 "type": "checkbox"
             }
         ]

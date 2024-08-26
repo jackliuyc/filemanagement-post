@@ -12,7 +12,7 @@ from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation,
                           QEasingCurve, QSettings, QAbstractAnimation)
 from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
                          QCursor, QDesktopServices, QTextCursor, QAction)
-
+from PyQt6.QtCore import QSettings
 
 # Write config to file
 # with open('filename_config.json', 'w') as f:
@@ -236,15 +236,10 @@ class FilenameGenerator(QMainWindow):
         self.reset_form_button = QPushButton("Reset Form")
         self.reset_form_button.clicked.connect(self.reset_form)
         self.reset_paradigm_button = QPushButton("Reset Paradigm")
-        self.reset_paradigm_button.clicked.connect(self.reset_form)  # Changed from self.reset_paradigm to self.reset_form
+        self.reset_paradigm_button.clicked.connect(self.reset_paradigm)  # Changed from self.reset_paradigm to self.reset_form
         self.reset_buttons_layout.addWidget(self.reset_form_button)
         self.reset_buttons_layout.addWidget(self.reset_paradigm_button)
         self.filename_layout.addLayout(self.reset_buttons_layout)
-
-        # Add Change Paradigm button to JSON Sidecar Builder Tab
-        self.change_paradigm_button = QPushButton("Change Paradigm")
-        self.change_paradigm_button.clicked.connect(self.change_paradigm)
-        self.json_layout.addWidget(self.change_paradigm_button)
 
         # Add debug mode checkbox
         self.debug_mode_checkbox = QCheckBox("Debug Mode")
@@ -282,10 +277,19 @@ class FilenameGenerator(QMainWindow):
         self.auto_save_timer.timeout.connect(self.auto_save_json)
         self.auto_save_timer.start(30000)  # Auto-save every 30 seconds
 
+
+        # Load saved output folder
+        self.settings = QSettings("FilenameGeneratorSettings", "EEG Filename Generator")
+        self.output_folder = self.settings.value("output_folder", os.getcwd())
+        self.update_output_folder_display()
+
+
     def update_study_label(self):
-        current_preset = self.preset_combo.currentText()
-        study_default = FILENAME_CONFIG[current_preset]["segments"][0]["default"]
-        self.study_label.setText(study_default)
+        # Get the preview filename from the result label
+        filename = self.result_label.text()
+        
+        # Update the study label with the preview filename
+        self.study_label.setText(f"{filename}")
 
     def load_preset(self, preset_name):
         self.clear_form()
@@ -438,7 +442,11 @@ class FilenameGenerator(QMainWindow):
             error_label = self.inputs[field_name]["error_label"]
             value = self.get_input_value(field_name)
             is_valid = True
-            if "validation" in segment:
+            
+            # Add this block to check if the dropdown is empty
+            if isinstance(widget, QComboBox) and widget.currentText() == "":
+                is_valid = False
+            elif "validation" in segment:
                 is_valid = re.match(segment["validation"], value) is not None
             
             if is_valid:
@@ -451,9 +459,10 @@ class FilenameGenerator(QMainWindow):
             else:
                 widget.setStyleSheet("border: 1px solid red;")
                 self.update_indicator(field_name, False)
-                error_label.setText(segment["error_message"])
+                error_label.setText(segment["error_message"] if "error_message" in segment else "This field is required")
                 error_label.setVisible(True)
         self.update_preview()
+        self.update_study_label()
         self.update_json_tab()
         self.clear_notes()  # Add this line to clear notes when any field is changed
 
@@ -496,6 +505,7 @@ class FilenameGenerator(QMainWindow):
             self.lock_button.setEnabled(False)
         
         self.result_label.setText(filename)
+
 
     def generate_filename(self):
         self.update_preview()
@@ -633,7 +643,10 @@ class FilenameGenerator(QMainWindow):
         if folder:
             self.output_folder = folder
             self.update_output_folder_display()
-            self.auto_save_json()  # Auto-save after selecting the folder
+            self.auto_save_json()
+            # Save the selected folder
+            self.settings.setValue("output_folder", self.output_folder)
+
 
     def add_tag_to_notes(self, tag):
         from datetime import datetime
@@ -716,26 +729,50 @@ class FilenameGenerator(QMainWindow):
     def reset_form(self):
         current_preset = self.preset_combo.currentText()
         self.load_preset(current_preset)
+    
+    def reset_paradigm(self):
+        current_preset = self.preset_combo.currentText()
+        file_type_field = next((segment for segment in FILENAME_CONFIG[current_preset]["segments"] if segment["name"] == "file_type"), None)
+        
+        if file_type_field:
+            file_type_widget = self.inputs["file_type"]["widget"]
+            if isinstance(file_type_widget, QComboBox):
+                file_type_widget.setCurrentIndex(0)  # Reset to first option
+            elif isinstance(file_type_widget, QLineEdit):
+                file_type_widget.clear()
+            
+            self.validate_field("file_type")
+            self.update_preview()
+            self.update_json_tab()
+            self.clear_notes()
+        else:
+            QMessageBox.warning(self, "No Paradigm Field", "No paradigm field found in the current preset.")
 
     def change_paradigm(self):
         current_preset = self.preset_combo.currentText()
-        paradigm_field = next((segment for segment in FILENAME_CONFIG[current_preset]["segments"] if segment.get("is_paradigm", False)), None)
+        file_type_field = next((segment for segment in FILENAME_CONFIG[current_preset]["segments"] if segment["name"] == "file_type"), None)
         
-        if paradigm_field:
-            paradigm_widget = self.inputs[paradigm_field["name"]]["widget"]
-            if isinstance(paradigm_widget, QComboBox):
-                current_index = paradigm_widget.currentIndex()
-                next_index = (current_index + 1) % paradigm_widget.count()
-                paradigm_widget.setCurrentIndex(next_index)
-            elif isinstance(paradigm_widget, QLineEdit):
-                paradigm_widget.clear()
+        if file_type_field:
+            file_type_widget = self.inputs["file_type"]["widget"]
+            if isinstance(file_type_widget, QComboBox):
+                current_index = file_type_widget.currentIndex()
+                next_index = (current_index + 1) % file_type_widget.count()
+                file_type_widget.setCurrentIndex(next_index)
+            elif isinstance(file_type_widget, QLineEdit):
+                file_type_widget.clear()
             
-            self.validate_field(paradigm_field["name"])
+            self.validate_field("file_type")
             self.update_preview()
             self.update_json_tab()
-            self.clear_notes()  # Add this line to clear notes when paradigm is changed
+            self.clear_notes()
+            
+            # Switch to the first tab
+            self.tab_widget.setCurrentIndex(0)
+            
+            # Reset paradigm
+            self.reset_paradigm()
         else:
-            QMessageBox.warning(self, "No Paradigm Field", "No paradigm field found in the current preset.")
+            QMessageBox.warning(self, "No File Type Field", "No file type field found in the current preset.")
 
     def clear_notes(self):
         self.notes_text.clear()
