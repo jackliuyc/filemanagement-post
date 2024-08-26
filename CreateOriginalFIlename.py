@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                              QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
                              QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
                              QScrollArea, QFrame, QToolTip, QFileDialog, QTabWidget,
-                             QTextEdit, QSizePolicy, QMenuBar, QMenu, QGraphicsOpacityEffect)
+                             QTextEdit, QSizePolicy, QMenuBar, QMenu, QGraphicsOpacityEffect, QSplitter)
 from PyQt6.QtCore import (Qt, QDate, QTimer, QPoint, QPropertyAnimation, 
                           QEasingCurve, QSettings, QAbstractAnimation)
 from PyQt6.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
@@ -211,12 +211,34 @@ class FilenameGenerator(QMainWindow):
                 self.quick_tags_layout.addLayout(row_layout)
                 row_layout = QHBoxLayout()
 
-        self.notes_label = QLabel("Notes about the recording:")
-        self.json_layout.addWidget(self.notes_label)
+        # Replace the existing notes_text with two separate text fields
+        self.notes_layout = QVBoxLayout()
         
-        self.notes_text = QTextEdit()
-        self.notes_text.textChanged.connect(self.notes_text_changed)
-        self.json_layout.addWidget(self.notes_text, 3)  # Set stretch factor to 3
+        self.session_notes_label = QLabel("Session Notes:")
+        self.session_notes_text = QTextEdit()
+        self.session_notes_text.textChanged.connect(self.notes_text_changed)
+        
+        self.paradigm_notes_label = QLabel("Paradigm Notes:")
+        self.paradigm_notes_text = QTextEdit()
+        self.paradigm_notes_text.textChanged.connect(self.notes_text_changed)
+        
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        session_widget = QWidget()
+        session_layout = QVBoxLayout(session_widget)
+        session_layout.addWidget(self.session_notes_label)
+        session_layout.addWidget(self.session_notes_text)
+        
+        paradigm_widget = QWidget()
+        paradigm_layout = QVBoxLayout(paradigm_widget)
+        paradigm_layout.addWidget(self.paradigm_notes_label)
+        paradigm_layout.addWidget(self.paradigm_notes_text)
+        
+        splitter.addWidget(session_widget)
+        splitter.addWidget(paradigm_widget)
+        
+        self.notes_layout.addWidget(splitter)
+        self.json_layout.addLayout(self.notes_layout, 3)  # Replace the existing notes_text addition
+
         
         button_layout = QHBoxLayout()
         self.save_json_button = QPushButton("Save JSON Sidecar")
@@ -283,6 +305,14 @@ class FilenameGenerator(QMainWindow):
         self.output_folder = self.settings.value("output_folder", os.getcwd())
         self.update_output_folder_display()
 
+    def add_tag_to_notes(self, tag):
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_tag = f"[{timestamp}] {tag}"
+        
+        self.paradigm_notes_text.setHtml(f"{self.paradigm_notes_text.toHtml()}<p style='margin-top: 10px; margin-bottom: 10px; padding: 5px; background-color: #f0f0f0; border-left: 3px solid #4A90E2; font-family: Arial, sans-serif;'>{formatted_tag}</p>")
+        self.paradigm_notes_text.moveCursor(QTextCursor.MoveOperation.End)
+        self.auto_save_json()
 
     def update_study_label(self):
         # Get the preview filename from the result label
@@ -464,7 +494,7 @@ class FilenameGenerator(QMainWindow):
         self.update_preview()
         self.update_study_label()
         self.update_json_tab()
-        self.clear_notes()  # Add this line to clear notes when any field is changed
+        self.clear_paradigm_notes()  # Add this line to clear notes when any field is changed
 
     def update_indicator(self, field_name, is_valid):
         if field_name in self.indicators:
@@ -588,9 +618,10 @@ class FilenameGenerator(QMainWindow):
         filename = self.result_label.text()
         self.json_data = {
             "filename": filename,
-            "notes": self.notes_text.toPlainText()
+            "session_notes": self.session_notes_text.toPlainText(),
+            "paradigm_notes": self.paradigm_notes_text.toPlainText()
         }
-        
+
         session_parts = []
         current_preset = self.preset_combo.currentText()
         
@@ -616,8 +647,11 @@ class FilenameGenerator(QMainWindow):
             self.json_data[suffix["name"]] = self.inputs[suffix["name"]].isChecked()
 
     def update_notes_from_json(self):
-        if hasattr(self, 'json_data') and 'notes' in self.json_data:
-            self.notes_text.setPlainText(self.json_data['notes'])
+        if hasattr(self, 'json_data'):
+            if 'session_notes' in self.json_data:
+                self.session_notes_text.setPlainText(self.json_data['session_notes'])
+            if 'paradigm_notes' in self.json_data:
+                self.paradigm_notes_text.setPlainText(self.json_data['paradigm_notes'])
 
     def auto_save_json(self):
         if self.tab_widget.currentIndex() == 1 and self.output_folder:
@@ -665,21 +699,6 @@ class FilenameGenerator(QMainWindow):
             # Save the selected folder
             self.settings.setValue("output_folder", self.output_folder)
 
-
-    def add_tag_to_notes(self, tag):
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        formatted_tag = f"[{timestamp}] {tag}"
-        
-        current_text = self.notes_text.toPlainText()
-        if current_text:
-            new_text = f"{current_text}\n\n{formatted_tag}"
-        else:
-            new_text = formatted_tag
-        
-        self.notes_text.setHtml(f"{self.notes_text.toHtml()}<p style='margin-top: 10px; margin-bottom: 10px; padding: 5px; background-color: #f0f0f0; border-left: 3px solid #4A90E2; font-family: Arial, sans-serif;'>{formatted_tag}</p>")
-        self.notes_text.moveCursor(QTextCursor.MoveOperation.End)
-        self.auto_save_json()
 
     def notes_text_changed(self):
         self.auto_save_json()
@@ -762,7 +781,7 @@ class FilenameGenerator(QMainWindow):
             self.validate_field("file_type")
             self.update_preview()
             self.update_json_tab()
-            self.clear_notes()
+            self.clear_paradigm_notes()
         else:
             QMessageBox.warning(self, "No Paradigm Field", "No paradigm field found in the current preset.")
 
@@ -782,7 +801,7 @@ class FilenameGenerator(QMainWindow):
             self.validate_field("file_type")
             self.update_preview()
             self.update_json_tab()
-            self.clear_notes()
+            self.clear_paradigm_notes()
             
             # Switch to the first tab
             self.tab_widget.setCurrentIndex(0)
@@ -792,10 +811,17 @@ class FilenameGenerator(QMainWindow):
         else:
             QMessageBox.warning(self, "No File Type Field", "No file type field found in the current preset.")
 
-    def clear_notes(self):
-        self.notes_text.clear()
+    def clear_paradigm_notes(self):
+        self.paradigm_notes_text.clear()
         if hasattr(self, 'json_data'):
-            self.json_data['notes'] = ''
+            self.json_data['paradigm_notes'] = ''
+
+    def clear_notes(self):
+        self.session_notes_text.clear()
+        self.paradigm_notes_text.clear()
+        if hasattr(self, 'json_data'):
+            self.json_data['session_notes'] = ''
+            self.json_data['paradigm_notes'] = ''
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
