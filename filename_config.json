@@ -177,7 +177,7 @@
             },
             {
                 "name": "file_type",
-                "label": "File Type",
+                "label": "Paradigm",
                 "type": "combo",
                 "default": "",
                 "options": [
@@ -187,11 +187,11 @@
                     "chirp"
                 ],
                 "validation": "^[A-Za-z]+$",
-                "error_message": "File type must be alphabetic"
+                "error_message": "Paradigm must be alphabetic"
             },
             {
                 "name": "HX",
-                "label": "2",
+                "label": "",
                 "type": "hidden",
                 "default": "HX-",
                 "editable": false
@@ -246,7 +246,7 @@
             },
             {
                 "name": "file_type",
-                "label": "File Type",
+                "label": "Paradigm",
                 "type": "combo",
                 "default": "",
                 "options": [
@@ -324,7 +324,7 @@
             },
             {
                 "name": "file_type",
-                "label": "File Type",
+                "label": "Paradigm",
                 "type": "combo",
                 "default": "",
                 "options": [

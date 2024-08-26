@@ -306,7 +306,6 @@ class FilenameGenerator(QMainWindow):
         
         total_fields = len(preset["segments"]) + len(preset["optional_suffixes"])
         fields_per_column = (total_fields + 1) // 2  # Round up division
-        
         field_count = 0
         for segment in preset["segments"]:
             widget = self.create_widget(segment)
@@ -320,6 +319,7 @@ class FilenameGenerator(QMainWindow):
             
             widget_row = QHBoxLayout()
             widget_row.addWidget(widget)
+            widget_row.addStretch()  # Add stretch to push widget to the left
             
             if segment.get("editable", True):
                 indicator = QLabel("❌")  # Red X
@@ -327,7 +327,6 @@ class FilenameGenerator(QMainWindow):
                 self.indicators[segment["name"]] = indicator
                 widget_row.addWidget(indicator)
             
-            widget_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
             row_layout.addLayout(widget_row)
             
             if field_count < fields_per_column:
@@ -342,10 +341,14 @@ class FilenameGenerator(QMainWindow):
             widget = QCheckBox(suffix["label"])
             widget.stateChanged.connect(lambda state, name=suffix["name"]: self.update_indicator(name, state))
             
+            checkbox_layout = QHBoxLayout()
+            checkbox_layout.addWidget(widget)
+            checkbox_layout.addStretch()  # Add stretch to push checkbox to the left
+            
             if field_count < fields_per_column:
-                left_form.addRow("", widget)
+                left_form.addRow("", checkbox_layout)
             else:
-                right_form.addRow("", widget)
+                right_form.addRow("", checkbox_layout)
             
             self.inputs[suffix["name"]] = widget
             field_count += 1
