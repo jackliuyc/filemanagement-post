@@ -575,5 +575,71 @@
                 "type": "checkbox"
             }
         ]
+    },
+    "RESTORE-RCT": {
+        "segments": [
+            {
+                "name": "study",
+                "label": "Study",
+                "type": "text",
+                "default": "RESTORE-RCT",
+                "validation": "^RESTORE-RCT$",
+                "editable": false
+            },
+            {
+                "name": "visit",
+                "label": "Visit",
+                "type": "combo",
+                "options": [
+                    "",
+                    "pretreatment",
+                    "2wk",
+                    "6wk",
+                    "12wk"
+                ],
+                "default": "",
+                "validation": "^(v\\d+)?$",
+                "error_message": "Phase must be empty or pretreatment, 2wk, 6wk, or 12wk"
+            },
+           
+            {
+                "name": "file_type",
+                "label": "Paradigm",
+                "type": "combo",
+                "default": "",
+                "options": [
+                    "",
+                    "resteyesopen",
+                    "resteyesclosed"
+                ],
+                "validation": "^[A-Za-z]+$",
+                "error_message": "Paradigm must be selected."
+            },
+            {
+                "name": "subject_id",
+                "label": "Subject ID",
+                "type": "text",
+                "validation": "^RT2-\\d{3}$",
+                "error_message": "Subject ID must be 5 digits"
+            },
+            {
+                "name": "subject_initials",
+                "label": "Subject Initials",
+                "type": "text",
+                "validation": "^[A-Z]{2,3}$",
+                "error_message": "Subject Initials must be 2 or 3 uppercase letters"
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "validation": "^\\d{2}-\\d{2}-\\d{4}$",
+                "error_message": "Date must be in MM-DD-YYYY format",
+                "no_leading_underscore": true
+            }
+
+        ],
+        "optional_suffixes": [
+        ]
     }
 }
