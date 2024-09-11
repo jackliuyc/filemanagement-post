@@ -17,6 +17,10 @@ from PyQt5.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap,
                          QCursor, QDesktopServices, QTextCursor)
 
 
+
+# Read config from file
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filename_config.json'), 'r') as f:
+    CONFIG_DICT = json.load(f)
     
     
 class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
@@ -24,10 +28,9 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
     lock_session_info_signal = pyqtSignal()  # Signal to emit when lock button is clicked
 
 
-    def __init__(self, data_model=None, parent=None):
-        super().__init__(parent)
-
-        self.data_model = data_model
+    def __init__(self):
+        
+        super().__init__()
 
         self.indicators = {}  # Store indicator labels
 
@@ -36,8 +39,8 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
 
         # Preset combo box
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems(self.data_model.CONFIG_DICT.keys())
-        self.preset_combo.currentTextChanged.connect(self.reset_form)
+        self.preset_combo.addItems(CONFIG_DICT.keys())
+        self.preset_combo.currentTextChanged.connect(self.load_preset)
         self.layout.addWidget(QLabel("Select Study Preset:"))
         self.layout.addWidget(self.preset_combo)
 
@@ -75,79 +78,72 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
 
         
         
-    def reset_form(self):
-        self.data_model.current_study = self.preset_combo.currentText()
-        self.load_preset()
         
         
-    def load_preset(self):
+        
+    def load_preset(self, preset_name):
         self.clear_form()
-
-        preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
-
+        preset = CONFIG_DICT[preset_name]
+        
         # Create a new widget for the scroll area content
         self.scroll_content = QWidget()
-
+        
         # Create a horizontal layout for two columns
         columns_layout = QHBoxLayout(self.scroll_content)
         left_form = QFormLayout()
         right_form = QFormLayout()
         columns_layout.addLayout(left_form)
         columns_layout.addLayout(right_form)
-
+        
         # Set the new widget as the scroll area's widget
         self.scroll_area.setWidget(self.scroll_content)
-
+        
         total_fields = len(preset["segments"]) + len(preset["optional_suffixes"])
         fields_per_column = (total_fields + 1) // 2  # Round up division
         field_count = 0
-        
         for segment in preset["segments"]:
-            if segment["type"] == "hidden":
-                continue  # Skip hidden segments
-
             widget = self.create_widget(segment)
             row_layout = QVBoxLayout()  # Changed to QVBoxLayout
-
+            
             # Add error label
             error_label = QLabel()
             error_label.setStyleSheet("color: red; font-size: 12px;")
             error_label.setVisible(False)
             row_layout.addWidget(error_label)
-
+            
             widget_row = QHBoxLayout()
             widget_row.addWidget(widget)
             widget_row.addStretch()  # Add stretch to push widget to the left
-
+            
             if segment.get("editable", True):
                 indicator = QLabel("❌")  # Red X
                 indicator.setStyleSheet("color: red; font-size: 16px;")
                 self.indicators[segment["name"]] = indicator
                 widget_row.addWidget(indicator)
-
+            
             row_layout.addLayout(widget_row)
-
+            
             if field_count < fields_per_column:
                 left_form.addRow(segment["label"], row_layout)
             else:
                 right_form.addRow(segment["label"], row_layout)
-
+            
             self.inputs[segment["name"]] = {"widget": widget, "error_label": error_label}
             field_count += 1
-
+        
         for suffix in preset["optional_suffixes"]:
             widget = QCheckBox(suffix["label"])
             widget.stateChanged.connect(lambda state, name=suffix["name"]: self.update_indicator(name, state))
-
+            
             checkbox_layout = QHBoxLayout()
             checkbox_layout.addWidget(widget)
             checkbox_layout.addStretch()  # Add stretch to push checkbox to the left
-
+            
             if field_count < fields_per_column:
                 left_form.addRow("", checkbox_layout)
             else:
                 right_form.addRow("", checkbox_layout)
-
+            
             self.inputs[suffix["name"]] = widget
             field_count += 1
 
@@ -160,8 +156,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
 
         # Validate all fields after loading
         for segment in preset["segments"]:
-            if segment["type"] != "hidden":
-                self.validate_field(segment["name"])
+            self.validate_field(segment["name"])
 
 
 
@@ -210,10 +205,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         elif segment["type"] == "hidden":
             widget = QLineEdit()
             widget.setVisible(False)
-            # Optionally: you can return None or an empty widget if it fits your design better
-            return widget
         return widget
-
 
     def clear_form(self):
         if self.scroll_content.layout() is not None:
@@ -232,7 +224,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         self.indicators.clear()
 
     def validate_field(self, field_name):
-        preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
+        preset = CONFIG_DICT[self.preset_combo.currentText()]
         segment = next((s for s in preset["segments"] if s["name"] == field_name), None)
         if segment and segment["type"] != "hidden":
             widget = self.inputs[field_name]["widget"]
@@ -265,37 +257,34 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
             self.indicators[field_name].setStyleSheet("color: green;" if is_valid else "color: red;")
 
     def update_preview(self, initial=False):
-        # filename_parts = []
-        # preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
-        # all_valid = True
+        filename_parts = []
+        preset = CONFIG_DICT[self.preset_combo.currentText()]
+        all_valid = True
         
-        # for segment in preset["segments"]:
-        #     if segment["type"] == "hidden":
-        #         continue  # Skip hidden segments
-        #     if initial:
-        #         value = f"<{segment['name']}>"
-        #     else:
-        #         value = self.get_input_value(segment["name"])
-        #         if "validation" in segment:
-        #             if not re.match(segment["validation"], value):
-        #                 all_valid = False
-        #     filename_parts.append(value)
+        for segment in preset["segments"]:
+            if initial:
+                value = f"<{segment['name']}>"
+            else:
+                value = self.get_input_value(segment["name"])
+                if "validation" in segment:
+                    if not re.match(segment["validation"], value):
+                        all_valid = False
+            filename_parts.append(value)
         
-        # filename = ""
-        # for i, part in enumerate(filename_parts):
-        #     # if i > 0 and not preset["segments"][i].get("no_leading_underscore", False):
-        #     #     filename += "_"
-        #     filename += part
+        filename = ""
+        for i, part in enumerate(filename_parts):
+            if i > 0 and not preset["segments"][i].get("no_leading_underscore", False):
+                filename += "_"
+            filename += part
         
-        # for suffix in preset["optional_suffixes"]:
-        #     if initial or self.inputs[suffix["name"]].isChecked():
-        #         filename += f"_{suffix['name']}"
+        for suffix in preset["optional_suffixes"]:
+            if initial or self.inputs[suffix["name"]].isChecked():
+                filename += f"_{suffix['name']}"
         
-        # if all_valid:
-        #     self.lock_button.setEnabled(True)
-        # else:
-        #     self.lock_button.setEnabled(False)
-        print("dude")
+        if all_valid:
+            self.lock_button.setEnabled(True)
+        else:
+            self.lock_button.setEnabled(False)
         
 
     def get_input_value(self, name):
@@ -313,16 +302,101 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
 
 
 
+    def reset_form(self):
+        current_preset = self.preset_combo.currentText()
+        self.load_preset(current_preset)
     
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        
+        
+        # Set global stylesheet
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #E6F3FF;
+            }
+            QLabel {
+                font-size: 14px;
+                color: #1A3A54;
+            }
+            QComboBox, QLineEdit, QDateEdit, QSpinBox {
+                font-size: 14px;
+                padding: 5px;
+                border: 1px solid #4A90E2;
+                border-radius: 4px;
+                background-color: #FFFFFF;
+                color: #1A3A54;
+                width: 150;
+            }
+            QPushButton {
+                font-size: 16px;
+                padding: 10px;
+                background-color: #4A90E2;
+                color: white;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #3A7BC8;
+            }
+            QPushButton:disabled {
+                background-color: #B0B0B0;  
+                color: #7F7F7F;      
+            }
+            QCheckBox {
+                font-size: 14px;
+                color: #1A3A54;
+            }
+        """)
+        
+        self.setWindowTitle("Main Application")
+        self.setGeometry(100, 100, 800, 600)
+        
+        # Create a QTabWidget
+        self.tab_widget = QTabWidget()
+        self.setCentralWidget(self.tab_widget)
+        
+        # Add the first tab (assuming it's already defined in the original code)
+        self.session_info_tab = SessionInfoForm()
+        self.tab_widget.addTab(self.session_info_tab, "Session Information")
+        
+        self.session_info_tab.lock_session_info_signal.connect(self.lock_session_info)
+
+        # Replace the second tab with the new one
+        self.file_tab = FileInputForm()
+        self.tab_widget.addTab(self.file_tab, "File Upload")
+        self.tab_widget.setTabEnabled(1, False)  # Disable second tab initially
+
+
+
+    def validate_all_fields(self):
+        preset = CONFIG_DICT[self.preset_combo.currentText()]
+        for segment in preset["segments"]:
+            if segment.get("editable", True):
+                self.validate_field(segment["name"])
+        
+        all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
+        self.lock_button.setEnabled(all_valid)
+        self.tab_widget.setTabEnabled(1, all_valid)
+
+    def lock_session_info(self):
+        all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
+        if all_valid:
+            self.tab_widget.setTabEnabled(1, True)
+            self.tab_widget.setCurrentIndex(1)
+        else:
+            QMessageBox.warning(self, "Validation Error", "Please correct all fields before locking the filename.")
+
+
+
 
 
 class FileInputForm(QWidget):
-    
-    def __init__(self, data_model=None, parent=None):
-        super().__init__(parent)
-
-        self.data_model = data_model
-
+    def __init__(self):
+        super().__init__()
 
         # Main layout
         self.layout = QVBoxLayout(self)
@@ -454,127 +528,24 @@ class FileInputForm(QWidget):
         self.add_button.setEnabled(True)
 
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        
-                
-        
-        # Initialize data model
-        self.data_model = DataModel()
-        
-        
-        
-        # Set global stylesheet
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #E6F3FF;
-            }
-            QLabel {
-                font-size: 14px;
-                color: #1A3A54;
-            }
-            QComboBox, QLineEdit, QDateEdit, QSpinBox {
-                font-size: 14px;
-                padding: 5px;
-                border: 1px solid #4A90E2;
-                border-radius: 4px;
-                background-color: #FFFFFF;
-                color: #1A3A54;
-                width: 150;
-            }
-            QPushButton {
-                font-size: 16px;
-                padding: 10px;
-                background-color: #4A90E2;
-                color: white;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #3A7BC8;
-            }
-            QPushButton:disabled {
-                background-color: #B0B0B0;  
-                color: #7F7F7F;      
-            }
-            QCheckBox {
-                font-size: 14px;
-                color: #1A3A54;
-            }
-        """)
-        
-        self.setWindowTitle("Main Application")
-        self.setGeometry(100, 100, 800, 600)
-        
-
-        
-        # Create a QTabWidget
-        self.tab_widget = QTabWidget()
-        self.setCentralWidget(self.tab_widget)
-        
-        # Init session info tab
-        self.session_info_tab = SessionInfoForm(self.data_model)
-        self.tab_widget.addTab(self.session_info_tab, "Session Information")
-        
-        
-        self.session_info_tab.lock_session_info_signal.connect(self.lock_session_info)
-
-        # Init session 
-        self.file_tab = FileInputForm(self.data_model)
-        self.tab_widget.addTab(self.file_tab, "File Upload")
-        self.tab_widget.setTabEnabled(1, False)  # Disable second tab initially
-
-
-
-    def validate_all_fields(self):
-        preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
-        for segment in preset["segments"]:
-            if segment.get("editable", True):
-                self.validate_field(segment["name"])
-        
-        all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
-        self.lock_button.setEnabled(all_valid)
-        self.tab_widget.setTabEnabled(1, all_valid)
-
-    def lock_session_info(self):
-        all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
-        if all_valid:
-            self.tab_widget.setTabEnabled(1, True)
-            self.tab_widget.setCurrentIndex(1)
-        else:
-            QMessageBox.warning(self, "Validation Error", "Please correct all fields before locking the filename.")
-
-
-
-
-
 
 
 class DataModel:
     
-    CONFIG_DICT = {}
-    
-    
-    # DEID_EEG_BACKUP_DIRECTORY = config['DEID_EEG_BACKUP_DIRECTORY']
-    # FULLNAME_EEG_BACKUP_DIRECTORY = config['FULLNAME_EEG_BACKUP_DIRECTORY']
-    # DEID_LOG_FILEPATH = config['DEID_LOG_FILEPATH']
-    # FILE_TYPE_TO_COLUMN = config['FILE_TYPE_TO_COLUMN']
-    
     def __init__(self):
 
+        # Load global variables from JSON file
+        with open(self.CONFIG_PATH, 'r') as file:
+            config = json.load(file)
 
+        self.EEG_PARADIGMS = config['EEG_PARADIGMS']
+        self.STUDY_NAMES = config['STUDY_NAMES']
+        self.EEG_LOCATIONS = config['EEG_LOCATIONS']
+        self.DEID_EEG_BACKUP_DIRECTORY = config['DEID_EEG_BACKUP_DIRECTORY']
+        self.FULLNAME_EEG_BACKUP_DIRECTORY = config['FULLNAME_EEG_BACKUP_DIRECTORY']
+        self.DEID_LOG_FILEPATH = config['DEID_LOG_FILEPATH']
+        self.FILE_TYPE_TO_COLUMN = config['FILE_TYPE_TO_COLUMN']
 
-
-        # Read config from file
-        config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filename_config.json') 
-        with open(config_file_path, 'r') as f:
-            self.CONFIG_DICT = json.load(f)
-
-
-        self.current_study = ""
-
-        # this session 
         self.session_data = {
             'study': None,
             'visit_number': None,
@@ -590,12 +561,12 @@ class DataModel:
         self.eeg_data = [] 
         
         
-        # self.deid_log = pd.DataFrame()
+        self.deid_log = pd.DataFrame()
         
-        # self.load_deid_log(self.DEID_LOG_FILEPATH)
+        self.load_deid_log(self.DEID_LOG_FILEPATH)
         
         
-        # self.deid = None
+        self.deid = None
 
     def display_message_box(self, message):
         msg_box = QMessageBox()
@@ -753,6 +724,8 @@ class DataModel:
                 shutil.copy2(src_path, dst_path)
                 
         self.display_message_box("Non-DEID files are copied")
+
+
 
 
 

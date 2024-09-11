@@ -10,8 +10,8 @@
                 "editable": false
             },
             {
-                "name": "phase",
-                "label": "Visit",
+                "name": "visit_number",
+                "label": "Visit Number",
                 "type": "combo",
                 "options": [
                     "",
@@ -30,57 +30,45 @@
                     "v13",
                     "v14",
                     "v15",
-                    "v16",
-                    "v17",
-                    "v18",
-                    "v19",
-                    "v20"
+                    "v1d1",
+                    "v1d2",
+                    "v1d3",
+                    "v1d4",
+                    "v1d5",
+                    "v2d1",
+                    "v2d2",
+                    "v2d3",
+                    "v2d4",
+                    "v2d5",
+                    "v3d1",
+                    "v3d2",
+                    "v3d3",
+                    "v3d4",
+                    "v3d5",
+                    "v4d1",
+                    "v4d2",
+                    "v4d3",
+                    "v4d4",
+                    "v4d5",
+                    "v5d1",
+                    "v5d2",
+                    "v5d3",
+                    "v5d4",
+                    "v5d5"
                 ],
                 "default": "",
-                "validation": "^(v\\d+)?$",
-                "error_message": "Phase must be empty or v1, v2, v3, etc."
+                "validation": "^v\\d{1,2}(d\\d{1,2})?$",
+                "error_message": "Visit number must be v1, v2, v3, etc."
             },
             {
-                "name": "day",
-                "label": "Day",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "d1",
-                    "d2",
-                    "d3",
-                    "d4",
-                    "d5",
-                    "d6",
-                    "d7",
-                    "d8",
-                    "d9",
-                    "d10",
-                    "d11",
-                    "d12",
-                    "d13",
-                    "d14",
-                    "d15",
-                    "d16",
-                    "d17",
-                    "d18",
-                    "d19",
-                    "d20"
-                ],
-                "validation": "^(d\\d+)?$",
-                "error_message": "Day must be empty or d1, d2, d3, etc.",
-                "no_leading_underscore": true
-            },
-            {
-                "name": "file_type",
+                "name": "paradigm",
                 "label": "Paradigm",
-                "type": "combo",
+                "type": "hidden",
                 "default": "",
                 "options": [
-                    "",
                     "rest",
                     "chirp",
+                    "chirplong",
                     "ssct",
                     "gapassr",
                     "rleeg",
@@ -106,7 +94,7 @@
                 "label": "Subject Initials",
                 "type": "text",
                 "validation": "^[A-Z]{2,3}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
+                "error_message": "Subject Initials must be 2 or 3 uppercase letters"
             },
             {
                 "name": "date",
@@ -117,8 +105,8 @@
                 "no_leading_underscore": true
             },
             {
-                "name": "capsize",
-                "label": "Capsize",
+                "name": "cap_type",
+                "label": "Cap Type",
                 "type": "combo",
                 "options": [
                     "",
@@ -127,7 +115,7 @@
                 ],
                 "default": "",
                 "validation": "^adult|infant$",
-                "error_message": "Capsize must be adult or infant"
+                "error_message": "Cap type must be adult or infant"
             },
             {
                 "name": "audio_source",
@@ -135,149 +123,95 @@
                 "type": "combo",
                 "options": [
                     "",
-                    "audhp",
-                    "audsp"
+                    "headphone",
+                    "speaker"
                 ],
                 "default": "",
-                "validation": "^audhp|audsp$",
-                "error_message": "Audio source must be audhp or speaker"
+                "validation": "^headphone|speaker$",
+                "error_message": "Audio source must be headphone or speaker"
             }
         ],
         "optional_suffixes": [
         ]
     },
-    "BIOENTRAIN": {
+    "ENTRAIN": {
         "segments": [
             {
                 "name": "study1",
-                "label": "Study1",
-                "type": "text",
-                "default": "BIO",
-                "validation": "^BIO$",
-                "editable": false
-            },
-            {
-                "name": "phase1",
-                "label": "Visit1",
-                "type": "combo",
-                "options": [
-                    "",
-                    "v1",
-                    "v2",
-                    "v3",
-                    "v4",
-                    "v5",
-                    "v6",
-                    "v7",
-                    "v8",
-                    "v9",
-                    "v10",
-                    "v11",
-                    "v12",
-                    "v13",
-                    "v14",
-                    "v15",
-                    "v16",
-                    "v17",
-                    "v18",
-                    "v19",
-                    "v20"
-                ],
-                "default": "",
-                "validation": "^(v\\d+)?$",
-                "error_message": "Phase must be empty or v1, v2, v3, etc."
-            },
-            {
-                "name": "day1",
-                "label": "Day1",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "d1",
-                    "d2",
-                    "d3",
-                    "d4",
-                    "d5",
-                    "d6",
-                    "d7",
-                    "d8",
-                    "d9",
-                    "d10",
-                    "d11",
-                    "d12",
-                    "d13",
-                    "d14",
-                    "d15",
-                    "d16",
-                    "d17",
-                    "d18",
-                    "d19",
-                    "d20"
-                ],
-                "validation": "^(d\\d+)?$",
-                "error_message": "Day must be empty or d1, d2, d3, etc.",
-                "no_leading_underscore": true
-            },
-            {
-                "name": "study2",
-                "label": "Study2",
+                "label": "Study",
                 "type": "text",
                 "default": "ENTRAIN",
                 "validation": "^ENTRAIN$",
                 "editable": false
             },
             {
-                "name": "phase2",
-                "label": "Phase2",
+                "name": "visit_number",
+                "label": "Visit Number",
                 "type": "combo",
                 "options": [
                     "",
                     "v1",
                     "v2",
-                    "v3"
+                    "v3",
+                    "v4",
+                    "v5",
+                    "v6",
+                    "v7",
+                    "v8",
+                    "v9",
+                    "v10",
+                    "v11",
+                    "v12",
+                    "v13",
+                    "v14",
+                    "v15",
+                    "v1d1",
+                    "v1d2",
+                    "v1d3",
+                    "v1d4",
+                    "v1d5",
+                    "v2d1",
+                    "v2d2",
+                    "v2d3",
+                    "v2d4",
+                    "v2d5",
+                    "v3d1",
+                    "v3d2",
+                    "v3d3",
+                    "v3d4",
+                    "v3d5",
+                    "v4d1",
+                    "v4d2",
+                    "v4d3",
+                    "v4d4",
+                    "v4d5",
+                    "v5d1",
+                    "v5d2",
+                    "v5d3",
+                    "v5d4",
+                    "v5d5"
                 ],
                 "default": "",
-                "validation": "^(v\\d+)?$",
-                "error_message": "Phase must be empty or v1, v2, v3, etc."
+                "validation": "^v\\d{1,2}(d\\d{1,2})?$",
+                "error_message": "Visit number must be v1, v2, v3, etc."
             },
             {
-                "name": "day2",
-                "label": "Day2",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "d1",
-                    "d2",
-                    "d3",
-                    "d4"
-                ],
-                "validation": "^(d\\d+)?$",
-                "error_message": "Day must be empty or d1, d2, d3, etc.",
-                "no_leading_underscore": true
-            },
-            {
-                "name": "file_type",
+                "name": "paradigm",
                 "label": "Paradigm",
-                "type": "combo",
+                "type": "hidden",
                 "default": "",
                 "options": [
-                    "",
                     "rest",
                     "chirp",
+                    "chirplong",
                     "ssct",
-                    "gapassr",
-                    "rleeg",
-                    "resteyesclosed",
-                    "talk",
-                    "listen",
-                    "vdaudio",
-                    "vdnoaudio",
+                    "slstructured",
+                    "slrandom",
+                    "bblong",
                     "other"
                 ],
                 "validation": "^[A-Za-z]+$",
-                "error_message": "Paradigm must be selected."
+                "error_message": "Paradigm must be selected"
             },
             {
                 "name": "subject_id",
@@ -291,7 +225,7 @@
                 "label": "Subject Initials",
                 "type": "text",
                 "validation": "^[A-Z]{2,3}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
+                "error_message": "Subject Initials must be 2 or 3 uppercase letters"
             },
             {
                 "name": "date",
@@ -299,11 +233,11 @@
                 "type": "date",
                 "validation": "^\\d{2}-\\d{2}-\\d{4}$",
                 "error_message": "Date must be in MM-DD-YYYY format",
-                "no_leading_underscore": false
+                "no_leading_underscore": true
             },
             {
-                "name": "capsize",
-                "label": "Capsize",
+                "name": "cap_type",
+                "label": "Cap Type",
                 "type": "combo",
                 "options": [
                     "",
@@ -312,7 +246,7 @@
                 ],
                 "default": "",
                 "validation": "^adult|infant$",
-                "error_message": "Capsize must be adult or infant"
+                "error_message": "Cap type must be adult or infant"
             },
             {
                 "name": "audio_source",
@@ -320,12 +254,12 @@
                 "type": "combo",
                 "options": [
                     "",
-                    "audhp",
-                    "audsp"
+                    "headphone",
+                    "speaker"
                 ],
                 "default": "",
-                "validation": "^audhp|audsp$",
-                "error_message": "Audio source must be audhp or speaker"
+                "validation": "^headphone|speaker$",
+                "error_message": "Audio source must be headphone or speaker"
             }
         ],
         "optional_suffixes": [
@@ -338,12 +272,12 @@
                 "label": "Study",
                 "type": "text",
                 "default": "HealX",
-                "error_message": "Study must be HealX",
+                "validation": "^HealX$",
                 "editable": false
             },
             {
-                "name": "phase",
-                "label": "Phase",
+                "name": "visit_number",
+                "label": "Visit Number",
                 "type": "combo",
                 "default": "",
                 "options": [
@@ -361,266 +295,26 @@
                 "error_message": "Phase must be v1pre, v1post, v2pre, v2post, v3pre, v3post, v4pre, or v4post"
             },
             {
-                "name": "file_type",
+                "name": "paradigm",
                 "label": "Paradigm",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "rest",
-                    "resteyesopen",
-                    "resteyesclosed",
-                    "chirp"
-                ],
-                "validation": "^[A-Za-z]+$",
-                "error_message": "Paradigm must be selected."
-            },
-            {
-                "name": "HX",
-                "label": "",
                 "type": "hidden",
-                "default": "HX-",
-                "editable": false
+                "default": "",
+                "options": [
+                    "rest",
+                    "resteyesclosed",
+                    "chirp",
+                    "chirplong"
+                ],
+                "validation": "^[A-Za-z]+$",
+                "error_message": "Paradigm must be selected"
             },
             {
                 "name": "subject_id",
-                "label": "Subject ID (HX-##)",
+                "label": "Subject ID",
                 "type": "text",
-                "validation": "^\\d{2}$",
-                "error_message": "Subject ID must be 2 digits",
+                "validation": "^HX-\\d{2}$",
+                "error_message": "Subject ID must be HX-##",
                 "no_leading_underscore": true
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": "^[A-Z]{2,3}$",
-                "error_message": "Subject Initials must be 2 or 3 uppercase letters"
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": "^\\d{2}-\\d{2}-\\d{4}$",
-                "error_message": "Date must be in MM-DD-YYYY format"
-            },
-            {
-                "name": "audio_source",
-                "label": "Audio Source",
-                "type": "combo",
-                "options": [
-                    "",
-                    "audhp",
-                    "audsp"
-                ],
-                "default": "",
-                "validation": "^audhp|audsp$",
-                "error_message": "Audio source must be audhp or speaker"
-            }
-        ],
-        "optional_suffixes": []
-    },
-    "Spinogenix": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "text",
-                "default": "SPX",
-                "editable": false
-            },
-            {
-                "name": "phase",
-                "label": "Phase",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "v1",
-                    "v2",
-                    "v3"
-                ],
-                "validation": "^v\\d+$",
-                "error_message": "Phase must be v1, v2, or v3"
-            },
-            {
-                "name": "file_type",
-                "label": "Paradigm",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "rest",
-                    "chirp",
-                    "SSCT",
-                    "RLEEG",
-                    "Talk",
-                    "Listen",
-                    "VDAudio",
-                    "VDNoAudio",
-                    "Other"
-                ],
-                "validation": "^[A-Za-z]+$",
-                "error_message": "Paradigm must be selected."
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID",
-                "type": "text",
-                "validation": "^\\d{2}$",
-                "error_message": "Subject ID must be 2 digits"
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": "^[A-Z]{2}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
-            },
-            {
-                "name": "HX",
-                "label": "HX",
-                "type": "text",
-                "default": "HX",
-                "validation": "^HX$",
-                "error_message": "HX must be HX",
-                "editable": false
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": "^\\d{2}\\.\\d{2}\\.\\d{4}$",
-                "error_message": "Date must be in MM.DD.YYYY format"
-            }
-        ],
-        "optional_suffixes": []
-    },
-    "default": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "BIO",
-                    "ENTRAIN",
-                    "U54SingleDose",
-                    "HealX",
-                    "Other"
-                ],
-                "validation": "^[A-Za-z0-9]+$",
-                "error_message": "Study name must be alphanumeric"
-            },
-            {
-                "name": "visit_number",
-                "label": "Visit Number",
-                "type": "spinbox",
-                "validation": "^\\d+$",
-                "error_message": "Visit number must be a positive integer"
-            },
-            {
-                "name": "file_type",
-                "label": "Paradigm",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "rest",
-                    "chirp",
-                    "SSCT",
-                    "RLEEG",
-                    "Talk",
-                    "Listen",
-                    "VDAudio",
-                    "VDNoAudio",
-                    "Other"
-                ],
-                "validation": "^[A-Za-z]+$",
-                "error_message": "Paradigm must be selected."
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID",
-                "type": "text",
-                "validation": "^\\d{5}$",
-                "error_message": "Subject ID must be 5 digits"
-            },
-            {
-                "name": "subject_initials",
-                "label": "Subject Initials",
-                "type": "text",
-                "validation": "^[A-Z]{2}$",
-                "error_message": "Subject Initials must be 2 uppercase letters"
-            },
-            {
-                "name": "date",
-                "label": "Date",
-                "type": "date",
-                "validation": "^\\d{2}-\\d{2}-\\d{4}$",
-                "error_message": "Date must be in MM-DD-YYYY format"
-            }
-        ],
-        "optional_suffixes": [
-            {
-                "name": "babycap",
-                "label": "Baby Cap",
-                "type": "checkbox"
-            },
-            {
-                "name": "audsp",
-                "label": "audsp",
-                "type": "checkbox"
-            }
-        ]
-    },
-    "RESTORE-RCT": {
-        "segments": [
-            {
-                "name": "study",
-                "label": "Study",
-                "type": "text",
-                "default": "RESTORE-RCT",
-                "validation": "^RESTORE-RCT$",
-                "editable": false
-            },
-            {
-                "name": "visit",
-                "label": "Visit",
-                "type": "combo",
-                "options": [
-                    "",
-                    "pretreatment",
-                    "2wk",
-                    "6wk",
-                    "12wk"
-                ],
-                "default": "",
-                "validation": "^(v\\d+)?$",
-                "error_message": "Phase must be empty or pretreatment, 2wk, 6wk, or 12wk"
-            },
-           
-            {
-                "name": "file_type",
-                "label": "Paradigm",
-                "type": "combo",
-                "default": "",
-                "options": [
-                    "",
-                    "resteyesopen",
-                    "resteyesclosed"
-                ],
-                "validation": "^[A-Za-z]+$",
-                "error_message": "Paradigm must be selected."
-            },
-            {
-                "name": "subject_id",
-                "label": "Subject ID",
-                "type": "text",
-                "validation": "^RT2-\\d{3}$",
-                "error_message": "Subject ID must be 5 digits"
             },
             {
                 "name": "subject_initials",
@@ -636,10 +330,133 @@
                 "validation": "^\\d{2}-\\d{2}-\\d{4}$",
                 "error_message": "Date must be in MM-DD-YYYY format",
                 "no_leading_underscore": true
+            },
+            {
+                "name": "cap_type",
+                "label": "Cap Type",
+                "type": "combo",
+                "options": [
+                    "",
+                    "adult",
+                    "infant"
+                ],
+                "default": "",
+                "validation": "^adult|infant$",
+                "error_message": "Cap type must be adult or infant"
+            },
+            {
+                "name": "audio_source",
+                "label": "Audio Source",
+                "type": "combo",
+                "options": [
+                    "",
+                    "headphone",
+                    "speaker"
+                ],
+                "default": "",
+                "validation": "^headphone|speaker$",
+                "error_message": "Audio source must be headphone or speaker"
             }
-
         ],
-        "optional_suffixes": [
-        ]
+        "optional_suffixes": []
+    },
+    "Spinogenix": {
+        "segments": [
+            {
+                "name": "study",
+                "label": "Study",
+                "type": "text",
+                "default": "SPG601",
+                "validation": "^SPG601$",
+                "editable": false
+            },
+            {
+                "name": "visit_number",
+                "label": "Visit Number",
+                "type": "combo",
+                "default": "",
+                "options": [
+                    "",
+                    "v1pre",
+                    "v1post",
+                    "v2pre",
+                    "v2post",
+                    "v3pre",
+                    "v3post",
+                    "v4pre",
+                    "v4post"
+                ],
+                "validation": "^v\\d+pre|v\\d+post$",
+                "error_message": "Phase must be v1pre, v1post, v2pre, v2post, v3pre, v3post, v4pre, or v4post"
+            },
+            {
+                "name": "paradigm",
+                "label": "Paradigm",
+                "type": "hidden",
+                "default": "",
+                "options": [
+                    "rest",
+                    "chirp",
+                    "SSCT",
+                    "RLEEG",
+                    "Talk",
+                    "Listen",
+                    "VDAudio",
+                    "VDNoAudio",
+                    "Other"
+                ],
+                "validation": "^[A-Za-z]+$",
+                "error_message": "Paradigm must be selected"
+            },
+            {
+                "name": "subject_id",
+                "label": "Subject ID",
+                "type": "text",
+                "validation": "^101-\\d{2}$",
+                "error_message": "Subject ID must be 101-##"
+            },
+            {
+                "name": "subject_initials",
+                "label": "Subject Initials",
+                "type": "text",
+                "validation": "^[A-Z]{2,3}$",
+                "error_message": "Subject Initials must be 2 or 3 uppercase letters"
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "validation": "^\\d{2}-\\d{2}-\\d{4}$",
+                "error_message": "Date must be in MM-DD-YYYY format",
+                "no_leading_underscore": true
+            },
+            {
+                "name": "cap_type",
+                "label": "Cap Type",
+                "type": "combo",
+                "options": [
+                    "",
+                    "adult",
+                    "infant"
+                ],
+                "default": "",
+                "validation": "^adult|infant$",
+                "error_message": "Cap type must be adult or infant"
+            },
+            {
+                "name": "audio_source",
+                "label": "Audio Source",
+                "type": "combo",
+                "options": [
+                    "",
+                    "headphone",
+                    "speaker"
+                ],
+                "default": "",
+                "validation": "^headphone|speaker$",
+                "error_message": "Audio source must be headphone or speaker"
+            }
+        ],
+        "optional_suffixes": []
     }
 }
