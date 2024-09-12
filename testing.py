@@ -21,7 +21,7 @@ from PyQt5.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap,
     
 class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
     
-    lock_session_info_signal = pyqtSignal()  # Signal to emit when lock button is clicked
+    confirm_session_info_signal = pyqtSignal()  # Signal to emit when lock button is clicked
 
 
     def __init__(self, data_model=None, parent=None):
@@ -58,20 +58,21 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
    
 
         # Lock filename button
-        self.lock_button = QPushButton("Lock Filename")
-        self.lock_button.clicked.connect(self.lock_session_info_signal.emit)
-        self.lock_button.setEnabled(False)  # Initially set to disabled
-        self.lock_button.setStyleSheet("""
+        self.confirm_session_button = QPushButton("Confirm Session Information")
+        self.confirm_session_button.clicked.connect(self.confirm_session_info_signal.emit)
+        self.confirm_session_button.setEnabled(False)  # Initially set to disabled
+        self.confirm_session_button.setStyleSheet("""
             QPushButton:disabled {
                 background-color: #A0A0A0;
             }
         """)
-        self.layout.addWidget(self.lock_button)
+        self.layout.addWidget(self.confirm_session_button)
         
         
         
         # Load first preset
         self.reset_form()
+        
 
         
     def get_current_study(self):
@@ -79,7 +80,15 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         # alternatively can get value from data model? 
         
     def reset_form(self):
+        
+        # clear data model 
+        #self.data_model.clear_data()
+        
+        # load preset
         self.load_preset(self.get_current_study())
+        
+        # re update data model 
+        self.update_session_info()
         
         
     def load_preset(self, preset):
@@ -240,9 +249,9 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         filename = "_".join(filename_parts)
 
         if all_valid:
-            self.lock_button.setEnabled(True)
+            self.confirm_session_button.setEnabled(True)
         else:
-            self.lock_button.setEnabled(False)
+            self.confirm_session_button.setEnabled(False)
         print(filename)
 
 
@@ -286,6 +295,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         
     
     def clear_form(self):
+        
         if self.scroll_content.layout() is not None:
             # Clear the existing layouts
             for i in reversed(range(self.scroll_content.layout().count())):
@@ -309,6 +319,8 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
 
 class FileInputForm(QWidget):
     
+    confirm_file_info_signal = pyqtSignal()
+    
     def __init__(self, data_model=None, parent=None):
         super().__init__(parent)
 
@@ -319,11 +331,11 @@ class FileInputForm(QWidget):
         self.layout = QVBoxLayout(self)
 
         # Text file input
-        self.txt_button = QPushButton("Upload Notes (.txt) file")
-        self.txt_button.clicked.connect(self.uploadTXT)
-        self.txt_label = QLabel("No file selected")
-        self.layout.addWidget(self.txt_button)
-        self.layout.addWidget(self.txt_label)
+        self.notes_button = QPushButton("Upload Notes (.txt) file")
+        self.notes_button.clicked.connect(self.upload_txt)
+        self.notes_label = QLabel("No file selected")
+        self.layout.addWidget(self.notes_button)
+        self.layout.addWidget(self.notes_label)
         
         # Container for sections
         self.scroll_area = QScrollArea()
@@ -334,19 +346,28 @@ class FileInputForm(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.layout.addWidget(self.scroll_area)
         
-        # Add button
+        # Add paradigm button
         self.add_button = QPushButton("Add Additional Paradigms")
-        self.add_button.clicked.connect(self.addSection)
+        self.add_button.clicked.connect(self.add_section)
         self.add_button.setEnabled(False)
         self.layout.addWidget(self.add_button)
         
+        
+        
+        # Add confirm session info button
+        self.confirm_file_button = QPushButton("Confirm File Info")
+        self.confirm_file_button.clicked.connect(self.confirm_file_info_signal)
+        self.confirm_file_button.setEnabled(False)
+        self.layout.addWidget(self.confirm_file_button)
+        
+    
         # List to hold all sections
         self.sections = []
 
         # Add initial section
-        self.addSection()  # Initialize with one section
+        self.add_section()  # Initialize with one section
 
-    def uploadTXT(self):
+    def upload_txt(self):
         options = QFileDialog.Options()
         filename, _ = QFileDialog.getOpenFileName(
             self,
@@ -357,20 +378,19 @@ class FileInputForm(QWidget):
         )
 
         if filename:
-            self.txt_label.setText(filename)
-            self.checkEnableAddButton()
+            self.notes_label.setText(filename)
+            self.check_form_completion()
 
-    def addSection(self):
+    def add_section(self):
         index = len(self.sections)
-        # Create UI components for a new section dynamically
+ 
+        # Paradigm selection combo box
         paradigm_combo = QComboBox()
-        paradigm_combo.addItems(["Paradigm 1", "Paradigm 2", "Paradigm 3"])  # Add your paradigms here
+        paradigm_combo.addItems(self.data_model.get_current_paradigms())
         
+        # Check section completion when combobox changed
+        paradigm_combo.currentIndexChanged.connect(self.check_form_completion)
         
-        #################################################################
-        # EDIT THIS
-        #paradigm_combo.addItems(self.data_model.get_paradigms())
-        #################################################################
         
         raw_button = QPushButton("Upload .RAW file")
         raw_label = QLabel("No file selected")
@@ -379,8 +399,8 @@ class FileInputForm(QWidget):
         mff_label = QLabel("No folder selected")
         
         # Connect buttons to their respective handlers
-        raw_button.clicked.connect(lambda _, label=raw_label: self.uploadRAW(label))
-        mff_button.clicked.connect(lambda _, label=mff_label: self.uploadMFF(label))
+        raw_button.clicked.connect(lambda _, label=raw_label: self.upload_raw(label))
+        mff_button.clicked.connect(lambda _, label=mff_label: self.upload_mff(label))
 
         # Form layout for the section
         form_layout = QFormLayout()
@@ -407,62 +427,69 @@ class FileInputForm(QWidget):
         divider.setFrameShadow(QFrame.Sunken)
         self.scroll_layout.addWidget(divider)
 
-        self.checkEnableAddButton()
+        self.check_form_completion()
 
-    def uploadRAW(self, raw_label):
+    def upload_raw(self, raw_label):
         options = QFileDialog.Options()
         filename, _ = QFileDialog.getOpenFileName(self, "Select .RAW file", "", "RAW Files (*.raw);;All Files (*)", options=options)
         if filename:
             raw_label.setText(filename)
-        self.checkEnableAddButton()  # Notify parent to check enable status
+        self.check_form_completion()  # Notify parent to check enable status
 
-    def uploadMFF(self, mff_label):
+    def upload_mff(self, mff_label):
         options = QFileDialog.Options()
         folder = QFileDialog.getExistingDirectory(self, "Select .MFF folder", "", options=options)
         if folder:
             mff_label.setText(folder)
-        self.checkEnableAddButton()  # Notify parent to check enable status
+        self.check_form_completion()  # Notify parent to check enable status
 
-    def checkEnableAddButton(self):
+    def check_form_completion(self):
         # Check if the main .txt file has been selected
-        if self.txt_label.text() == "No file selected":
+        if self.notes_label.text() == "No file selected":
             self.add_button.setEnabled(False)
+            self.confirm_file_button.setEnabled(False)
             return
 
-        # Get the latest section
-        latest_section = self.sections[-1]
+        # Check if all sections are complete
+        all_sections_complete = all(
+            section["paradigm_combo"].currentIndex() != 0 and
+            section["raw_label"].text() != "No file selected" and
+            section["mff_label"].text() != "No folder selected"
+            for section in self.sections
+        )
+
+        # Enable or disable the buttons based on the completion status
+        self.add_button.setEnabled(all_sections_complete)
+        self.confirm_file_button.setEnabled(all_sections_complete)
         
-        # Check if the latest section's paradigm is selected
-        if latest_section["paradigm_combo"].currentIndex() == -1:
-            self.add_button.setEnabled(False)
-            return
         
-        # Check if a .RAW file has been selected in the latest section
-        if latest_section["raw_label"].text() == "No file selected":
-            self.add_button.setEnabled(False)
-            return
+    def clear_files(self):
+        # Delete each section 
+        for section in self.sections:
+            section["widget"].deleteLater()
+        self.sections = []
+
+        # Add initial section again
+        self.add_section()  
         
-        # Check if a .MFF folder has been selected in the latest section
-        if latest_section["mff_label"].text() == "No folder selected":
-            self.add_button.setEnabled(False)
-            return
-        
-        # If all checks pass, enable the add_button
-        self.add_button.setEnabled(True)
+        # Reset buttons
+        self.add_button.setEnabled(False)
+        self.confirm_file_button.setEnabled(False)
+
+                    
+
+
+
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-                
-        
         # Initialize data model
         self.data_model = DataModel()
         
-        
-        
-        # Set global stylesheet
+        # Set stylesheet
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #E6F3FF;
@@ -500,13 +527,12 @@ class MainWindow(QMainWindow):
                 color: #1A3A54;
             }
         """)
-        
         self.setWindowTitle("Main Application")
         self.setGeometry(100, 100, 800, 600)
         
 
         
-        # Create a QTabWidget
+        # Tab widget
         self.tab_widget = QTabWidget()
         self.setCentralWidget(self.tab_widget)
         
@@ -515,12 +541,15 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.session_info_tab, "Session Information")
         
         
-        self.session_info_tab.lock_session_info_signal.connect(self.lock_session_info)
+        self.session_info_tab.confirm_session_info_signal.connect(self.confirm_session_info)
 
         # Init session 
         self.file_tab = FileInputForm(self.data_model)
         self.tab_widget.addTab(self.file_tab, "File Upload")
         self.tab_widget.setTabEnabled(1, False)  # Disable second tab initially
+        
+        
+        self.file_tab.confirm_file_info_signal.connect(self.confirm_file_info)
 
 
 
@@ -531,26 +560,54 @@ class MainWindow(QMainWindow):
                 self.validate_field(segment["name"])
         
         all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
-        self.lock_button.setEnabled(all_valid)
+        self.confirm_session_button.setEnabled(all_valid)
         self.tab_widget.setTabEnabled(1, all_valid)
 
-    def lock_session_info(self):
+    def confirm_session_info(self):
         all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
         if all_valid:
+            
+            
+            # reset second tab   
+            self.file_tab.clear_files()
+            
+                      
+            # enable second tab
             self.tab_widget.setTabEnabled(1, True)
             self.tab_widget.setCurrentIndex(1)
             
             
             
-            
-            # TEMPORARY
+            # Update data model with session information
             self.session_info_tab.update_session_info()
             
-            
-            
         else:
-            QMessageBox.warning(self, "Validation Error", "Please correct all fields before locking the filename.")
+            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. This should never happen, if you see this something is really really wrong lol")
+            
+            
+    def confirm_file_info(self):
+    
+        
+        all_valid = all(
+            section["paradigm_combo"].currentIndex() != 0 and
+            section["raw_label"].text() != "No file selected" and
+            section["mff_label"].text() != "No folder selected"
+            for section in self.file_tab.sections
+        ) and self.file_tab.notes_label != "No file selected"
+        
+        if all_valid:
+            print("confirm")
 
+            # get deid
+            # add deid entry
+            
+            # copy file
+            # copy other file
+            
+            # rest data  
+        
+        else:
+            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. This should never happen, if you see this something is really really wrong lol")
 
 
 
@@ -591,7 +648,6 @@ class DataModel:
         
         self.eeg_file_list = []
 
-        
         self.paradigm_list = []
         
         
@@ -602,15 +658,21 @@ class DataModel:
         
         
         # self.deid = None
+        
+        
+        
+    def get_current_paradigms(self):
+        current_study = self.session_info['study']
+        return self.CONFIG_DICT[current_study]['paradigm']['options']
 
-    def display_message_box(self, message):
-        msg_box = QMessageBox()
-        msg_box.setText(message)
-        msg_box.exec_()
+
         
     def clear_data(self):
         self.__init__()
-        self.display_message_box("Data cleared")
+        #QMessageBox.information(None, "asdf", "data cleared")
+        
+        
+        
 
     def load_deid_log(self, file_path):
         if os.path.exists(file_path):
@@ -720,7 +782,7 @@ class DataModel:
                 # Make copy at destination folder
                 shutil.copy2(src_path, dst_path)        
                 
-        self.display_message_box("DEID files are copied")
+        QMessageBox.information(self, "title", "DEID files are copied")
 
         
         
@@ -758,7 +820,7 @@ class DataModel:
                 # Make copy at destination folder
                 shutil.copy2(src_path, dst_path)
                 
-        self.display_message_box("Non-DEID files are copied")
+        QMessageBox.information(self, "title", "Non-DEID files are copied")
 
 
 
