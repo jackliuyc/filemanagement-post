@@ -37,7 +37,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         # Preset combo box
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(self.data_model.CONFIG_DICT.keys())
-        self.preset_combo.currentTextChanged.connect(self.reset_form)
+        self.preset_combo.currentTextChanged.connect(self.load_preset)
         self.layout.addWidget(QLabel("Select Study Preset:"))
         self.layout.addWidget(self.preset_combo)
 
@@ -74,16 +74,18 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         self.reset_form()
 
         
+    def get_current_study(self):
+        return self.preset_combo.currentText()
+        # alternatively can get value from data model? 
         
     def reset_form(self):
-        self.data_model.current_study = self.preset_combo.currentText()
-        self.load_preset()
+        self.load_preset(self.get_current_study())
         
         
-    def load_preset(self):
+    def load_preset(self, preset):
         self.clear_form()
 
-        preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
+        preset = self.data_model.CONFIG_DICT[preset]
 
         # Create a new widget for the scroll area content
         self.scroll_content = QWidget()
@@ -98,15 +100,15 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         # Set the new widget as the scroll area's widget
         self.scroll_area.setWidget(self.scroll_content)
 
-        total_fields = len(preset["segments"]) + len(preset["optional_suffixes"])
+        total_fields = len(preset)
         fields_per_column = (total_fields + 1) // 2  # Round up division
         field_count = 0
-        
-        for segment in preset["segments"]:
-            if segment["type"] == "hidden":
-                continue  # Skip hidden segments
 
-            widget = self.create_widget(segment)
+        for field_name, field in preset.items():
+            if field["type"] == "hidden":
+                continue  # Skip hidden fields
+
+            widget = self.create_widget(field)
             row_layout = QVBoxLayout()  # Changed to QVBoxLayout
 
             # Add error label
@@ -119,36 +121,20 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
             widget_row.addWidget(widget)
             widget_row.addStretch()  # Add stretch to push widget to the left
 
-            if segment.get("editable", True):
+            if field.get("editable", True):
                 indicator = QLabel("❌")  # Red X
                 indicator.setStyleSheet("color: red; font-size: 16px;")
-                self.indicators[segment["name"]] = indicator
+                self.indicators[field_name] = indicator
                 widget_row.addWidget(indicator)
 
             row_layout.addLayout(widget_row)
 
             if field_count < fields_per_column:
-                left_form.addRow(segment["label"], row_layout)
+                left_form.addRow(field["label"], row_layout)
             else:
-                right_form.addRow(segment["label"], row_layout)
+                right_form.addRow(field["label"], row_layout)
 
-            self.inputs[segment["name"]] = {"widget": widget, "error_label": error_label}
-            field_count += 1
-
-        for suffix in preset["optional_suffixes"]:
-            widget = QCheckBox(suffix["label"])
-            widget.stateChanged.connect(lambda state, name=suffix["name"]: self.update_indicator(name, state))
-
-            checkbox_layout = QHBoxLayout()
-            checkbox_layout.addWidget(widget)
-            checkbox_layout.addStretch()  # Add stretch to push checkbox to the left
-
-            if field_count < fields_per_column:
-                left_form.addRow("", checkbox_layout)
-            else:
-                right_form.addRow("", checkbox_layout)
-
-            self.inputs[suffix["name"]] = widget
+            self.inputs[field_name] = {"widget": widget, "error_label": error_label}
             field_count += 1
 
         # Adjust the scroll content widget's layout
@@ -159,62 +145,146 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         self.update_preview(initial=True)
 
         # Validate all fields after loading
-        for segment in preset["segments"]:
-            if segment["type"] != "hidden":
-                self.validate_field(segment["name"])
+        for field_name, field in preset.items():
+            if field["type"] != "hidden":
+                self.validate_field(field_name)
 
 
-
-    def create_widget(self, segment):
-        if segment["type"] == "text":
+    def create_widget(self, field):
+        if field["type"] == "text":
             widget = QLineEdit()
             widget.setMinimumHeight(30)
-            if "default" in segment:
-                widget.setText(segment["default"])
-            if "editable" in segment and not segment["editable"]:
+            if "default" in field:
+                widget.setText(field["default"])
+            if "editable" in field and not field["editable"]:
                 widget.setReadOnly(True)
                 widget.setStyleSheet("font-size: 14px; background-color: #F0F0F0;")  # Grey out non-editable fields
             else:
-                widget.textChanged.connect(lambda text, name=segment["name"]: self.validate_field(name))
+                widget.textChanged.connect(lambda text, name=field["name"]: self.validate_field(name))
                 widget.setStyleSheet("font-size: 14px;")
-        elif segment["type"] == "combo":
+        elif field["type"] == "combo":
             widget = QComboBox()
             widget.setMinimumHeight(30)
-            widget.addItems(segment["options"])
-            if segment.get("editable", True):
-                widget.currentTextChanged.connect(lambda text, name=segment["name"]: self.validate_field(name))
-                # Add this line to trigger validation on focus out
-                widget.focusOutEvent = lambda event, name=segment["name"]: self.validate_field(name)
+            widget.addItems(field["options"])
+            if field.get("editable", True):
+                widget.currentTextChanged.connect(lambda text, name=field["name"]: self.validate_field(name))
+                widget.focusOutEvent = lambda event, name=field["name"]: self.validate_field(name)
             else:
                 widget.setEnabled(False)
             widget.setStyleSheet("font-size: 14px;")
-        elif segment["type"] == "date":
+        elif field["type"] == "date":
             widget = QDateEdit()
             widget.setMinimumHeight(30)
             widget.setCalendarPopup(True)
             widget.setDate(QDate.currentDate())
-            if segment.get("editable", True):
-                widget.dateChanged.connect(lambda date, name=segment["name"]: self.validate_field(name))
+            if field.get("editable", True):
+                widget.dateChanged.connect(lambda date, name=field["name"]: self.validate_field(name))
             else:
                 widget.setReadOnly(True)
             widget.setStyleSheet("font-size: 14px;")
-        elif segment["type"] == "spinbox":
+        elif field["type"] == "spinbox":
             widget = QSpinBox()
             widget.setMinimumHeight(30)
-            widget.setMinimum(1)
-            if segment.get("editable", True):
-                widget.valueChanged.connect(lambda value, name=segment["name"]: self.validate_field(name))
+            widget.setMinimum(0)
+            widget.setMaximum(99999)
+            if field.get("editable", True):
+                widget.valueChanged.connect(lambda value, name=field["name"]: self.validate_field(name))
             else:
                 widget.setReadOnly(True)
             widget.setStyleSheet("font-size: 14px;")
-        elif segment["type"] == "hidden":
+        elif field["type"] == "hidden":
             widget = QLineEdit()
             widget.setVisible(False)
-            # Optionally: you can return None or an empty widget if it fits your design better
-            return widget
         return widget
 
 
+    def validate_field(self, field_name):
+        preset = self.data_model.CONFIG_DICT[self.get_current_study()]
+        field = preset.get(field_name, None)
+        if field and field["type"] != "hidden":
+            widget = self.inputs[field_name]["widget"]
+            error_label = self.inputs[field_name]["error_label"]
+            value = self.get_input_value(field_name)
+
+            is_valid = re.match(field["validation"], value) is not None
+
+            if is_valid:
+                widget.setStyleSheet("border: 1px solid green;")
+                self.update_indicator(field_name, True)
+                error_label.setVisible(False)
+            else:
+                widget.setStyleSheet("border: 1px solid red;")
+                self.update_indicator(field_name, False)
+                error_label.setText(field.get("error_message", "This field is required"))
+                error_label.setVisible(True)
+        self.update_preview()
+
+
+    def update_preview(self, initial=False):
+        filename_parts = []
+        preset = self.data_model.CONFIG_DICT[self.get_current_study()]
+        all_valid = True
+
+        for field_name, field in preset.items():
+            if field["type"] == "hidden":
+                continue  # Skip hidden fields
+            if initial:
+                value = f"<{field_name}>"
+            else:
+                value = self.get_input_value(field_name)
+                if "validation" in field:
+                    if not re.match(field["validation"], value):
+                        all_valid = False
+            filename_parts.append(value)
+
+        filename = "_".join(filename_parts)
+
+        if all_valid:
+            self.lock_button.setEnabled(True)
+        else:
+            self.lock_button.setEnabled(False)
+        print(filename)
+
+
+    def get_input_value(self, name):
+        widget = self.inputs[name]["widget"]
+
+        if isinstance(widget, QLineEdit):
+            return widget.text()
+        elif isinstance(widget, QComboBox):
+            return widget.currentText()
+        elif isinstance(widget, QDateEdit):
+            return widget.date().toString("MM-dd-yyyy")
+        elif isinstance(widget, QSpinBox):
+            return str(widget.value())
+        return ""
+
+
+
+
+    def update_session_info(self):
+        
+        cur_session_info = self.data_model.session_info 
+        
+        for key in cur_session_info:
+            
+            value = self.get_input_value(key)
+            self.data_model.session_info[key] = value
+            
+            
+            
+        print(self.data_model.session_info)
+        
+        
+        
+        
+    def update_indicator(self, field_name, is_valid):
+        if field_name in self.indicators:
+            self.indicators[field_name].setText("✅" if is_valid else "❌")
+            self.indicators[field_name].setStyleSheet("color: green;" if is_valid else "color: red;")
+
+        
+    
     def clear_form(self):
         if self.scroll_content.layout() is not None:
             # Clear the existing layouts
@@ -230,90 +300,11 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
                     item.layout().setParent(None)
         self.inputs.clear()
         self.indicators.clear()
-
-    def validate_field(self, field_name):
-        preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
-        segment = next((s for s in preset["segments"] if s["name"] == field_name), None)
-        if segment and segment["type"] != "hidden":
-            widget = self.inputs[field_name]["widget"]
-            error_label = self.inputs[field_name]["error_label"]
-            value = self.get_input_value(field_name)
-                       
-            is_valid = re.match(segment["validation"], value) is not None
-            
-            if is_valid:
-                if segment["type"] == "combo":
-                    widget.setStyleSheet("border: 1px solid green; font-size: 14px;")
-                else:
-                    widget.setStyleSheet("border: 1px solid green;")
-                widget.setStyleSheet("border: 1px solid green;")
-                    
-                self.update_indicator(field_name, True)
-                error_label.setVisible(False)
-            else:
-                widget.setStyleSheet("border: 1px solid red;")
-                self.update_indicator(field_name, False)
-                error_label.setText(segment["error_message"] if "error_message" in segment else "This field is required")
-                error_label.setVisible(True)
-        self.update_preview()
-
         
-        
-    def update_indicator(self, field_name, is_valid):
-        if field_name in self.indicators:
-            self.indicators[field_name].setText("✅" if is_valid else "❌")
-            self.indicators[field_name].setStyleSheet("color: green;" if is_valid else "color: red;")
-
-    def update_preview(self, initial=False):
-        # filename_parts = []
-        # preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
-        # all_valid = True
-        
-        # for segment in preset["segments"]:
-        #     if segment["type"] == "hidden":
-        #         continue  # Skip hidden segments
-        #     if initial:
-        #         value = f"<{segment['name']}>"
-        #     else:
-        #         value = self.get_input_value(segment["name"])
-        #         if "validation" in segment:
-        #             if not re.match(segment["validation"], value):
-        #                 all_valid = False
-        #     filename_parts.append(value)
-        
-        # filename = ""
-        # for i, part in enumerate(filename_parts):
-        #     # if i > 0 and not preset["segments"][i].get("no_leading_underscore", False):
-        #     #     filename += "_"
-        #     filename += part
-        
-        # for suffix in preset["optional_suffixes"]:
-        #     if initial or self.inputs[suffix["name"]].isChecked():
-        #         filename += f"_{suffix['name']}"
-        
-        # if all_valid:
-        #     self.lock_button.setEnabled(True)
-        # else:
-        #     self.lock_button.setEnabled(False)
-        print("dude")
-        
-
-    def get_input_value(self, name):
-        widget = self.inputs[name]["widget"]
-        if isinstance(widget, QLineEdit):
-            return widget.text()
-        elif isinstance(widget, QComboBox):
-            return widget.currentText()
-        elif isinstance(widget, QDateEdit):
-            return widget.date().toString("MM-dd-yyyy")
-        elif isinstance(widget, QSpinBox):
-            return str(widget.value())
-        return ""
-
-
-
-
     
+
+
+
 
 
 class FileInputForm(QWidget):
@@ -374,6 +365,12 @@ class FileInputForm(QWidget):
         # Create UI components for a new section dynamically
         paradigm_combo = QComboBox()
         paradigm_combo.addItems(["Paradigm 1", "Paradigm 2", "Paradigm 3"])  # Add your paradigms here
+        
+        
+        #################################################################
+        # EDIT THIS
+        #paradigm_combo.addItems(self.data_model.get_paradigms())
+        #################################################################
         
         raw_button = QPushButton("Upload .RAW file")
         raw_label = QLabel("No file selected")
@@ -528,7 +525,7 @@ class MainWindow(QMainWindow):
 
 
     def validate_all_fields(self):
-        preset = self.data_model.CONFIG_DICT[self.data_model.current_study]
+        preset = self.data_model.CONFIG_DICT[self.get_current_study()]
         for segment in preset["segments"]:
             if segment.get("editable", True):
                 self.validate_field(segment["name"])
@@ -542,6 +539,15 @@ class MainWindow(QMainWindow):
         if all_valid:
             self.tab_widget.setTabEnabled(1, True)
             self.tab_widget.setCurrentIndex(1)
+            
+            
+            
+            
+            # TEMPORARY
+            self.session_info_tab.update_session_info()
+            
+            
+            
         else:
             QMessageBox.warning(self, "Validation Error", "Please correct all fields before locking the filename.")
 
@@ -553,8 +559,6 @@ class MainWindow(QMainWindow):
 
 class DataModel:
     
-    CONFIG_DICT = {}
-    
     
     # DEID_EEG_BACKUP_DIRECTORY = config['DEID_EEG_BACKUP_DIRECTORY']
     # FULLNAME_EEG_BACKUP_DIRECTORY = config['FULLNAME_EEG_BACKUP_DIRECTORY']
@@ -563,19 +567,14 @@ class DataModel:
     
     def __init__(self):
 
-
-
-
-        # Read config from file
+        # Configuration dictionary containing presets
         config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filename_config.json') 
         with open(config_file_path, 'r') as f:
             self.CONFIG_DICT = json.load(f)
 
 
-        self.current_study = ""
-
-        # this session 
-        self.session_data = {
+        # Session information  
+        self.session_info = {
             'study': None,
             'visit_number': None,
             'subject_id': None,
@@ -583,16 +582,23 @@ class DataModel:
             'date': None,
             'location': None,
             'net_serial_number': None,
-            'speakers': None,
-            'babycap': None,
+            'audio_source': None,
+            'cap_type': None,
             'other_notes': None
         }
-        self.eeg_data = [] 
+        
+        self.notes_file = ""
+        
+        self.eeg_file_list = []
+
+        
+        self.paradigm_list = []
         
         
-        # self.deid_log = pd.DataFrame()
         
-        # self.load_deid_log(self.DEID_LOG_FILEPATH)
+        # data organization file 
+        self.deid_log = pd.DataFrame()
+        #self.load_deid_log(self.DEID_LOG_FILEPATH)
         
         
         # self.deid = None
