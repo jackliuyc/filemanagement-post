@@ -168,8 +168,8 @@
             "name": "study",
             "label": "Study",
             "type": "text",
-            "default": "BIO",
-            "validation": "^BIO$",
+            "default": "ENTRAIN",
+            "validation": "^ENTRAIN$",
             "editable": false
         },
         "visit_number": {
