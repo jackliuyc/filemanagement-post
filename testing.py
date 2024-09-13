@@ -276,7 +276,6 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
     # ALL OF THIS I AM UNSURE ABOUT 
 
     def update_preview(self, initial=False):
-        filename_parts = []
         preset = self.data_model.CONFIG_DICT[self.get_current_study()]
         all_valid = True
 
@@ -290,15 +289,13 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
                 if "validation" in field:
                     if not re.match(field["validation"], value):
                         all_valid = False
-            filename_parts.append(value)
-
-        filename = "_".join(filename_parts)
+ 
 
         if all_valid:
             self.confirm_session_button.setEnabled(True)
         else:
             self.confirm_session_button.setEnabled(False)
-        print(filename)
+        print("asdf")
 
 
 
@@ -457,6 +454,7 @@ class FileInputForm(QWidget):
             options=options
         )
         if filename:
+            self.data_model.notes_file = filename
             self.notes_label.setText(filename)
             self.check_form_completion()
         
@@ -469,7 +467,29 @@ class FileInputForm(QWidget):
         self.add_section() # add initial section   
         self.add_button.setEnabled(False) # reset buttons 
         self.confirm_file_button.setEnabled(False)
+        
+        
 
+    def update_file_info(self):
+        """Update data_model user input fields."""
+        # Clear the existing eeg_file_info
+        self.data_model.eeg_file_info = []
+
+        # Loop over each section 
+        for section in self.sections:
+            
+            # Dictionary of file info
+            paradigm = section['paradigm_combo'].currentText()
+            raw_file = section['raw_label'].text()
+            mff_folder = section['mff_label'].text()
+            file_info = {
+                'paradigm': paradigm,
+                'raw_file': raw_file if raw_file != "No file selected" else None,
+                'mff_folder': mff_folder if mff_folder != "No folder selected" else None
+            }
+            self.data_model.eeg_file_info.append(file_info)
+
+        print("Updated eeg_file_info:", self.data_model.eeg_file_info)
                     
 
 class MainWindow(QMainWindow):
@@ -604,6 +624,9 @@ class MainWindow(QMainWindow):
         ) and self.file_upload_tab.notes_label != "No file selected"
         if all_valid:
             print("confirm")
+            
+            # Update data model with file info
+            self.file_upload_tab.update_file_info()
 
             # get deid
             # add deid entry
@@ -656,7 +679,7 @@ class DataModel:
         }
 
         # List of dictionaries containing EEG file paradigm and file paths
-        self.eeg_file_list = []
+        self.eeg_file_info = []
         
         # Init deid log
         self.deid_log = pd.DataFrame()
