@@ -130,8 +130,8 @@
                 "infant"
             ],
             "default": "",
-            "validation": "^adult|infant$",
-            "error_message": "Cap type must be adult or infant"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Cap type must be selected"
         },
         "audio_source": {
             "name": "audio_source",
@@ -139,12 +139,12 @@
             "type": "combo",
             "options": [
                 "",
-                "headphone",
-                "speaker"
+                "speakers",
+                "headphones"
             ],
             "default": "",
-            "validation": "^headphone|speaker$",
-            "error_message": "Audio source must be headphone or speaker"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Audio source must be selected"
         },
         "net_serial_number": {
             "name": "net_serial_number",
@@ -246,8 +246,8 @@
             "name": "subject_id",
             "label": "Subject ID",
             "type": "text",
-            "validation": "^\\d{5}$",
-            "error_message": "Subject ID must be 5 digits"
+            "validation": "^\\d{5}-\\d{3}$",
+            "error_message": "Subject ID must be #####-###"
         },
         "subject_initials": {
             "name": "subject_initials",
@@ -290,8 +290,8 @@
                 "infant"
             ],
             "default": "",
-            "validation": "^adult|infant$",
-            "error_message": "Cap type must be adult or infant"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Cap type must be selected"
         },
         "audio_source": {
             "name": "audio_source",
@@ -299,12 +299,12 @@
             "type": "combo",
             "options": [
                 "",
-                "headphone",
-                "speaker"
+                "speakers",
+                "headphones"
             ],
             "default": "",
-            "validation": "^headphone|speaker$",
-            "error_message": "Audio source must be headphone or speaker"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Audio source must be selected"
         },
         "net_serial_number": {
             "name": "net_serial_number",
@@ -415,8 +415,8 @@
                 "infant"
             ],
             "default": "",
-            "validation": "^adult|infant$",
-            "error_message": "Cap type must be adult or infant"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Cap type must be selected"
         },
         "audio_source": {
             "name": "audio_source",
@@ -424,14 +424,14 @@
             "type": "combo",
             "options": [
                 "",
-                "headphone",
-                "speaker"
+                "speakers",
+                "headphones"
             ],
             "default": "",
-            "validation": "^headphone|speaker$",
-            "error_message": "Audio source must be headphone or speaker"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Audio source must be selected"
         },
-        "serial_number": {
+        "net_serial_number": {
             "name": "net_serial_number",
             "label": "Net Serial Number",
             "type": "spinbox",
@@ -544,8 +544,8 @@
                 "infant"
             ],
             "default": "",
-            "validation": "^adult|infant$",
-            "error_message": "Cap type must be adult or infant"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Cap type must be selected"
         },
         "audio_source": {
             "name": "audio_source",
@@ -553,12 +553,12 @@
             "type": "combo",
             "options": [
                 "",
-                "headphone",
-                "speaker"
+                "speakers",
+                "headphones"
             ],
             "default": "",
-            "validation": "^headphone|speaker$",
-            "error_message": "Audio source must be headphone or speaker"
+            "validation": "^[A-Za-z0-9]+$",
+            "error_message": "Audio source must be selected"
         },
         "net_serial_number": {
             "name": "net_serial_number",

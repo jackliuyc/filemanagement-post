@@ -3,25 +3,22 @@ import json
 import re
 import os
 import shutil
-import pandas as pd 
+import pandas as pd
 from datetime import datetime
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, 
-                             QFormLayout, QWidget, QLabel, QLineEdit, QComboBox, 
-                             QPushButton, QDateEdit, QCheckBox, QSpinBox, QMessageBox,
-                             QScrollArea, QFrame, QToolTip, QFileDialog, QTabWidget,
-                             QTextEdit, QSizePolicy, QMenuBar, QMenu, QGraphicsOpacityEffect, QSplitter,
-                             QAction) 
-from PyQt5.QtCore import (Qt, pyqtSignal, QDate, QTimer, QPoint, QPropertyAnimation, 
-                          QEasingCurve, QSettings, QAbstractAnimation)
-from PyQt5.QtGui import (QFont, QColor, QPalette, QIcon, QPixmap, 
-                         QCursor, QDesktopServices, QTextCursor)
 
+from PyQt5.QtCore import pyqtSignal, QDate
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, 
+    QLabel, QLineEdit, QComboBox, QPushButton, QDateEdit, QSpinBox, 
+    QMessageBox, QScrollArea, QFrame, QFileDialog, QTabWidget, 
+    QSizePolicy, QAction
+)
 
     
+class SessionInfoForm(QWidget):  
     
-class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
-    
-    confirm_session_info_signal = pyqtSignal()  # Signal to emit when lock button is clicked
+    # signal to main window when session info is confirmed 
+    confirm_session_info_signal = pyqtSignal()  
 
     def __init__(self, data_model=None, parent=None):
         super().__init__(parent)
@@ -86,7 +83,6 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         for key in cur_session_info:
             value = self.get_input_value(key)
             self.data_model.session_info[key] = value
-        print(self.data_model.session_info)
         
         
     def load_preset(self, preset):
@@ -132,7 +128,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
 
             if field.get("editable", True):
                 indicator = QLabel("❌")  # Red X
-                indicator.setStyleSheet("color: red; font-size: 16px;")
+                #indicator.setStyleSheet("color: red; font-size: 16px;")
                 self.indicators[field_name] = indicator
                 widget_row.addWidget(indicator)
 
@@ -163,10 +159,10 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
                 widget.setText(field["default"])
             if "editable" in field and not field["editable"]:
                 widget.setReadOnly(True)
-                widget.setStyleSheet("font-size: 14px; background-color: #F0F0F0;")  # Grey out non-editable fields
+                widget.setStyleSheet("font-size: 1px; background-color: #F0F0F0;")  # Grey out non-editable fields
             else:
                 widget.textChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
-                widget.setStyleSheet("font-size: 14px;")
+                widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "combo":
             widget = QComboBox()
             widget.setMinimumHeight(30)
@@ -175,7 +171,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
                 widget.currentTextChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
             else:
                 widget.setEnabled(False)
-            widget.setStyleSheet("font-size: 14px;")
+            widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "date":
             widget = QDateEdit()
             widget.setMinimumHeight(30)
@@ -185,7 +181,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
                 widget.dateChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
             else:
                 widget.setReadOnly(True)
-            widget.setStyleSheet("font-size: 14px;")
+            widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "spinbox":
             widget = QSpinBox()
             widget.setMinimumHeight(30)
@@ -195,13 +191,12 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
                 widget.valueChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
             else:
                 widget.setReadOnly(True)
-            widget.setStyleSheet("font-size: 14px;")
+            widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "hidden":
             widget = QLineEdit()
             widget.setVisible(False)
         
         return widget
-
     
     
     def clear_form(self):
@@ -277,18 +272,7 @@ class SessionInfoForm(QWidget):  # Inherit from QWidget instead of QMainWindow
         # Enable or disable the confirm button based on the overall validation result
         self.confirm_session_button.setEnabled(all_valid)
 
-
-
-
-
         
-        
-        
-   
-
-        
-    
-
     
 
 
@@ -393,7 +377,7 @@ class FileInputForm(QWidget):
         filename, _ = QFileDialog.getOpenFileName(self, "Select .RAW file", "", "RAW Files (*.raw);;All Files (*)", options=options)
         if filename:
             raw_label.setText(filename)
-        self.check_form_completion()  # Update buttons 
+        self.check_form_completion()  # Check validity and update buttons 
 
 
     def upload_mff(self, mff_label):
@@ -402,7 +386,7 @@ class FileInputForm(QWidget):
         folder = QFileDialog.getExistingDirectory(self, "Select .MFF folder", "", options=options)
         if folder:
             mff_label.setText(folder)
-        self.check_form_completion()  # Update buttons
+        self.check_form_completion()  # Check validity and update buttons 
 
 
     def check_form_completion(self):
@@ -437,16 +421,6 @@ class FileInputForm(QWidget):
             self.data_model.notes_file = filename
             self.notes_label.setText(filename)
             self.check_form_completion()
-        
-        
-    # def clear_files(self):
-    #     """Clear all elements in form""" 
-    #     for section in self.sections:
-    #         section["widget"].deleteLater()
-    #     self.sections = []
-    #     self.add_section() # add initial section   
-    #     self.add_button.setEnabled(False) # reset buttons 
-    #     self.confirm_file_button.setEnabled(False)
         
         
     def clear_files(self):
@@ -485,9 +459,13 @@ class FileInputForm(QWidget):
                 'mff_folder': mff_folder if mff_folder != "No folder selected" else None
             }
             self.data_model.eeg_file_info.append(file_info)
-
-        print("Updated eeg_file_info:", self.data_model.eeg_file_info)
                     
+
+
+
+
+
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -502,11 +480,11 @@ class MainWindow(QMainWindow):
                 background-color: #E6F3FF;
             }
             QLabel {
-                font-size: 14px;
+                font-size: 16px;
                 color: #1A3A54;
             }
             QComboBox, QLineEdit, QDateEdit, QSpinBox {
-                font-size: 14px;
+                font-size: 16px;
                 padding: 5px;
                 border: 1px solid #4A90E2;
                 border-radius: 4px;
@@ -530,13 +508,25 @@ class MainWindow(QMainWindow):
                 color: #7F7F7F;      
             }
             QCheckBox {
-                font-size: 14px;
+                font-size: 16px;
                 color: #1A3A54;
+            }
+            QTabBar::tab {
+                font-size: 16px;
+                min-width: 180;  
+                padding: 5px; 
+                border: 1px solid #D1D9E6;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+
+            QTabBar::tab:selected {
+                background-color: #FFFFFF;
+                border-bottom-color: #FFFFFF;
             }
         """)
         self.setWindowTitle("Main Application")
         self.setGeometry(100, 100, 800, 600)
-        
 
         # Create the menu
         self.init_menu()
@@ -549,14 +539,17 @@ class MainWindow(QMainWindow):
         self.session_info_tab = SessionInfoForm(self.data_model)
         self.tab_widget.addTab(self.session_info_tab, "Session Information")
         
+        # Slot for session info confirm signal
         self.session_info_tab.confirm_session_info_signal.connect(self.confirm_session_info)
 
         # Init file upload tab  
         self.file_upload_tab = FileInputForm(self.data_model)
         self.tab_widget.addTab(self.file_upload_tab, "File Upload")
+        self.tab_widget.setTabEnabled(0, True) # Enable first tab
         self.tab_widget.setTabEnabled(1, False)  # Disable second tab initially
         self.tab_widget.setCurrentIndex(0)
         
+        # Slot for file info confirm signal 
         self.file_upload_tab.confirm_file_info_signal.connect(self.confirm_file_info)
 
 
@@ -577,7 +570,7 @@ class MainWindow(QMainWindow):
 
 
     def select_output_folder(self):
-        """Store output folder in data_model when menu item is selected"""
+        """Select new output folder for files"""
         folder = QFileDialog.getExistingDirectory(self, "Select File Output Folder")
         if folder:
             self.data_model.file_output_folder = folder
@@ -591,6 +584,9 @@ class MainWindow(QMainWindow):
 
         # Disable the second tab
         self.tab_widget.setTabEnabled(1, False)
+        
+        # Swap to first tab
+        self.tab_widget.setTabEnabled(0, True)
         self.tab_widget.setCurrentIndex(0)
         
         # Clear data amodel
@@ -607,34 +603,54 @@ class MainWindow(QMainWindow):
             self.file_upload_tab.clear_files()
             self.tab_widget.setTabEnabled(1, True)
             self.tab_widget.setCurrentIndex(1)
+            # Disable first tab (have to reset whole session)
+            self.tab_widget.setTabEnabled(0, False)
         else:
-            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. This should never happen, if you see this something is really wrong lol")
+            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. If you see this something is really really wrong.")
             
             
     def confirm_file_info(self):
         """When file confirm button is pressed: double check validity, then process files"""        
+        
+        # Check all file fields filled out 
         all_valid = all(
             section["paradigm_combo"].currentIndex() != 0 and
             section["raw_label"].text() != "No file selected" and
             section["mff_label"].text() != "No folder selected"
             for section in self.file_upload_tab.sections
         ) and self.file_upload_tab.notes_label != "No file selected"
+        
         if all_valid:
-            print("confirm")
             
             # Update data model with file info
             self.file_upload_tab.update_file_info()
 
-            # get deid
-            # add deid entry
+            # update deid log/get deid    
+            self.data_model.save_to_csv(self.data_model.file_output_folder)
+            QMessageBox.information(self, 'title', f'your deid is: {self.data_model.deid}. saved to csv. do not touch anything')
             
-            # copy file
-            # copy other file
-            
-            # rest data  
+            # copy corrected files
+            self.data_model.copy_and_rename_files()   
+            QMessageBox.information(self, 'title', 'copied corrected files. do not touch anything')
+         
+            # copy deid files
+            self.data_model.save_deid_files()
+            QMessageBox.information(self, 'title', 'copied deid files. do not touch anything')
+
+            # reset data
+            self.reset_form()
+            if datetime.now().microsecond % 100 < 5:
+                ascii_art = r"""form is reset here is a lucky 5% cat
+                 /\_/\  
+                ( o.o ) 
+                > ^ <
+                """
+                QMessageBox.information(self, 'title', ascii_art)
+            else:
+                QMessageBox.information(self, 'title', 'form is reset')
         
         else:
-            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. This should never happen, if you see this something is really really wrong lol")
+            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. If you see this something is really really wrong.")
 
 
 
@@ -643,10 +659,30 @@ class MainWindow(QMainWindow):
 
 class DataModel:
     
-    # DEID_EEG_BACKUP_DIRECTORY = config['DEID_EEG_BACKUP_DIRECTORY']
-    # FULLNAME_EEG_BACKUP_DIRECTORY = config['FULLNAME_EEG_BACKUP_DIRECTORY']
-    # DEID_LOG_FILEPATH = config['DEID_LOG_FILEPATH']
-    # FILE_TYPE_TO_COLUMN = config['FILE_TYPE_TO_COLUMN']
+    FILE_TYPE_TO_COLUMN = {
+        "notes": None, 
+        "rest": "Resting", 
+        "resteyesclosed" : "Resting",
+        "chirp": "Chirp", 
+        "chirplong": "Chirp", 
+        "ssct": "Steady State", 
+        "rleeg": "Reversal Learning", 
+        "talk": "TalkListen", 
+        "listen": "TalkListen", 
+        "vdaudio": "Visual Discrimination", 
+        "vdnoaudio": "Visual Discrimination", 
+        "slstructured": "SL Passive", 
+        "slrandom": "SL Passive", 
+        "slactive": "SL Active", 
+        "habituation": "Habituation",
+        "bblong": "BB Long", 
+        "tactilechirp": "Tactile Chirp", 
+        "tactilehab": "Tactile Habituation", 
+        "oddball": "Oddball", 
+        "other": "Other"
+    },
+
+    DEID_LOG_FILEPATH = 'C:/Users/liu7tv/OneDrive - cchmc/deid_logs_testing/DeidentifyPatientNum_NEW_testing.xlsm'  
     
     def __init__(self):
 
@@ -657,6 +693,7 @@ class DataModel:
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/eeg_backup/'
+        self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/OTHER'
 
         # Notes file path         
         self.notes_file = ""
@@ -680,6 +717,7 @@ class DataModel:
         
         # Init deid log
         self.deid_log = pd.DataFrame()
+        self.load_deid_log(self.DEID_LOG_FILEPATH)
         #self.load_deid_log(self.DEID_LOG_FILEPATH)
         
         # DeID for current session
@@ -696,89 +734,89 @@ class DataModel:
         """Reset data model"""
         self.__init__()
         
-        
+    
     def load_deid_log(self, file_path):
         """Read deid log into pandas table"""
         if os.path.exists(file_path):
-            #df = pd.read_excel(file_path)
-            self.deid_log = pd.read_csv(file_path)
+            self.deid_log = pd.read_excel(file_path, engine='openpyxl')
+            #self.deid_log = pd.read_csv(file_path)
+            
+            # Filter out rows where first column is NaN (no deid available)
+            first_column = self.deid_log.columns[0]
+            self.deid_log = self.deid_log[self.deid_log[first_column].notna()]
+            
+            # reset index (shouldn't matter?)
+            self.deid_log.reset_index(drop=True, inplace=True)
+            
         else:
             raise FileNotFoundError(f"The file {file_path} does not exist.")        
   
-
   
-    def add_eeg_data(self, data_dict):
-        self.eeg_data.append(data_dict)
+    def get_empty_row_index_from_deid_log(self):
+        """Find the index of the first completely empty row (ignoring the first column)."""
+        empty_rows = self.deid_log.loc[:, self.deid_log.columns[1:]].isna().all(axis=1)
+        
+        # check if there's no empty rows left 
+        if not empty_rows.any():
+            raise ValueError("No available rows in deid log, run out of deids.")
+        
+        return empty_rows.idxmax()
 
-    
-    def get_deid_from_log(self):
-        
-        # idk 
-        df = self.deid_log.copy()
-        
-        # Find first empty row (ignoring first column)
-        empty_rows = df.loc[:, df.columns[1:]].isna().all(axis=1)
-        empty_row_index = empty_rows.idxmax() if empty_rows.any() else len(df)
-        
-        # get deid
-        deid = df.at[empty_row_index, df.columns[0]]
-
-        # set deid 
-        self.deid = deid
-        
-        return deid, empty_row_index
+    def get_deid(self, row):
+        """Get deid from deid log, given a row index"""
+        return self.deid_log.at[row, self.deid_log.columns[0]]
 
 
     def save_to_csv(self, file_path):
-   
-        
+       
         # idk
         df = self.deid_log.copy()
+     
+        # get first empty row
+        empty_row_index = self.get_empty_row_index_from_deid_log()
         
-        
-        _, empty_row_index = self.get_deid_from_log()
+        # set deid from log
+        self.deid = self.get_deid(empty_row_index)
         
         
         # Manually assign values to the DataFrame columns from data_dict
         if empty_row_index < len(df):
             # Fill out the identified empty row
-            df.at[empty_row_index, 'Study'] = self.session_data['study']
-            df.at[empty_row_index, 'Subject ID'] = self.session_data['subject_id']
-            df.at[empty_row_index, 'Visit Num'] = self.session_data['visit_number']
-            df.at[empty_row_index, 'Visit Date'] = self.session_data['date']
-            df.at[empty_row_index, 'Initials'] = self.session_data['subject_initials']
-            df.at[empty_row_index, 'Location'] = self.session_data['location']
-            df.at[empty_row_index, 'Net Serial Number'] = self.session_data['net_serial_number']
-            df.at[empty_row_index, 'Notes'] = self.session_data['other_notes']        
+            df.at[empty_row_index, 'Study'] = self.session_info['study']
+            df.at[empty_row_index, 'Subject ID'] = self.session_info['subject_id']
+            df.at[empty_row_index, 'Visit Num'] = self.session_info['visit_number']
+            df.at[empty_row_index, 'Visit Date'] = self.session_info['date']
+            df.at[empty_row_index, 'Initials'] = self.session_info['subject_initials']
+            df.at[empty_row_index, 'Location'] = self.session_info['location']
+            df.at[empty_row_index, 'Net Serial Number'] = self.session_info['net_serial_number']
+            df.at[empty_row_index, 'Notes'] = self.session_info['other_notes']        
         else:
             raise Exception("No empty rows available in the CSV")
                 
-                
-        for eeg_file_dict in self.eeg_data:
-            cur_file_type = eeg_file_dict['File type']
+        # Add paradigms
+        for eeg_file_dict in self.eeg_file_info:
+            cur_file_type = eeg_file_dict['paradigm']
             column_name = self.FILE_TYPE_TO_COLUMN.get(cur_file_type, None)
-            
             if column_name:
                 if pd.isna(df.at[empty_row_index, column_name]):
                     df.at[empty_row_index, column_name] = 1
                 else:
                     df.at[empty_row_index, column_name] += 1
-                
-
         
         # Update deid log
-        df.to_csv(file_path, index=False)
-        
         
                      
-    def save_deid_files(self, destination_folder):
+    def save_deid_files(self):
+        
+        destination_folder = self.file_output_folder 
+
         file_type_counter = {}
 
         # Loop through all files
-        for row in self.eeg_data:
-            src_path = row['RAW file path']
+        for row in self.eeg_file_info:
+            src_path = row['raw_file']
             if src_path:
-                file_type = row['File type']
+                file_type = row['paradigm']
                 
                 # Initialize or update the counter for this file type
                 if file_type not in file_type_counter:
@@ -788,14 +826,13 @@ class DataModel:
                 
                 # Create base file name with optional counter
                 counter = file_type_counter[file_type] if file_type_counter[file_type] > 1 else ""
-                base_name = f"{self.deid:04}_{file_type}{counter}"
+                base_name = f"{self.deid}_{file_type}{counter}"
 
                 # Add additional notes if needed
-                if self.session_data['babycap']:
+                if self.session_info['cap_type'] == 'babycap':
                     base_name += "_babycap"
-                if self.session_data['speakers'] and file_type != 'rest':
+                if self.session_info['audio_source'] == 'speakers' and file_type != 'rest':
                     base_name += "_speakers"
-
 
                 # Create final file path
                 dst_path = os.path.join(destination_folder, base_name + os.path.splitext(src_path)[1])
@@ -803,20 +840,21 @@ class DataModel:
                 # Make copy at destination folder
                 shutil.copy2(src_path, dst_path)        
                 
-        QMessageBox.information(self, "title", "DEID files are copied")
-
         
-        
-    def copy_and_rename_files(self, destination_folder):
+    def copy_and_rename_files(self):
         file_type_counter = {}
         
-        dat = self.session_data
+        destination_folder = self.file_output_folder 
+        
+        dat = self.session_info
 
         # Loop through all files
-        for row in self.eeg_data:
-            src_path = row['RAW file path']
-            if src_path:
-                file_type = row['File type']
+        for row in self.eeg_file_info:
+            src_path_raw = row['raw_file']
+            src_path_mff = row['raw_file']
+
+            if src_path_raw and src_path_mff:
+                file_type = row['paradigm']
                 
                 # Initialize or update the counter for this file type
                 if file_type not in file_type_counter:
@@ -829,21 +867,24 @@ class DataModel:
                 base_name = f"{dat['study']}_{dat['visit_number']}_{file_type}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
 
                 # Add additional notes if needed
-                if dat['babycap']:
+                if self.session_info['cap_type'] == 'babycap':
                     base_name += "_babycap"
-                if dat['speakers'] and file_type != 'rest':
+                if self.session_info['audio_source'] == 'speakers' and file_type != 'rest':
                     base_name += "_speakers"
 
                 # Create final file path
-                dst_path = os.path.join(destination_folder, base_name + os.path.splitext(src_path)[1])
-
-                # Make copy at destination folder
-                shutil.copy2(src_path, dst_path)
+                dst_path_raw = os.path.join(destination_folder, base_name + os.path.splitext(src_path_raw)[1])
+                dst_path_mff = os.path.join(destination_folder, base_name + os.path.splitext(src_path_mff)[1])
                 
-        QMessageBox.information(self, "title", "Non-DEID files are copied")
+                # Make copy at destination folder
+                shutil.copy2(src_path_raw, dst_path_raw)
+                shutil.copy2(src_path_mff, dst_path_mff)
 
 
-
+    def save_sidecar_files(self):
+        print("save sidecar must implement")
+        
+      
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = MainWindow()
