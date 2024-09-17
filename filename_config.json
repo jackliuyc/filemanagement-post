@@ -448,7 +448,7 @@
             "error_message": "Notes must be alphanumeric"
         }
     },
-    "Spinogenix": {
+    "SPG601": {
         "study": {
             "name": "study",
             "label": "Study",

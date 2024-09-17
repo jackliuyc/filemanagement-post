@@ -6,6 +6,9 @@ import shutil
 import pandas as pd
 from datetime import datetime
 
+from openpyxl import load_workbook
+
+
 from PyQt5.QtCore import pyqtSignal, QDate
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, 
@@ -328,7 +331,7 @@ class FileInputForm(QWidget):
 
         # Paradigm selection combo box
         paradigm_combo = QComboBox()
-        paradigm_combo.addItems(self.data_model.get_current_paradigms())
+        paradigm_combo.addItems(self.data_model.get_list_of_current_paradigms())
         paradigm_combo.currentIndexChanged.connect(self.check_form_completion)
         form_layout.addRow(QLabel(f"Paradigm {len(self.sections) + 1}:"), paradigm_combo)
 
@@ -620,15 +623,18 @@ class MainWindow(QMainWindow):
 
             # update deid log/get deid    
             self.data_model.save_session_to_deid_log()
-            QMessageBox.information(self, 'title', f'your deid is: {self.data_model.deid}. saved to csv. do not touch anything')
+            QMessageBox.information(self, 'title', f'your deid is: {self.data_model.deid}\nsaved to csv\ndo not touch anything')
             
             # copy corrected files
             self.data_model.copy_and_rename_files()   
-            QMessageBox.information(self, 'title', 'copied corrected files. do not touch anything')
+            QMessageBox.information(self, 'title', 'copied corrected files\ndo not touch anything')
          
             # copy deid files
             self.data_model.save_deid_files()
-            QMessageBox.information(self, 'title', 'copied deid files. do not touch anything')
+            QMessageBox.information(self, 'title', 'copied deid files\ndo not touch anything')
+
+            # create sidecar files
+            self.data_model.save_sidecar_files()
 
             # reset data
             self.reset_form()
@@ -688,7 +694,7 @@ class DataModel:
         self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/output'
 
         # Notes file path         
-        self.notes_file = ""
+        self.notes_file = None
         
         # Session information  
         self.session_info = {
@@ -710,96 +716,70 @@ class DataModel:
         # Init deid log
         self.deid_log = pd.DataFrame()
         self.load_deid_log(self.DEID_LOG_FILEPATH)
-        #self.load_deid_log(self.DEID_LOG_FILEPATH)
         
         # DeID for current session
         self.deid = None
         
-        
-    def get_current_paradigms(self):
+    
+    def clear_data(self):
+        """Reset data model"""
+        self.__init__()    
+    
+    
+    def get_list_of_current_paradigms(self):
         """Get list of paradigms for current study preset"""
         current_study = self.session_info['study']
         return self.CONFIG_DICT[current_study]['paradigm']['options']
         
-
-    def clear_data(self):
-        """Reset data model"""
-        self.__init__()
-        
     
     def load_deid_log(self, file_path):
-        """Read deid log into pandas table"""
-        if os.path.exists(file_path):
-            self.deid_log = pd.read_excel(file_path, engine='openpyxl')
-            #self.deid_log = pd.read_csv(file_path)
-            
-            # Filter out rows where first column is NaN (no deid available)
-            first_column = self.deid_log.columns[0]
-            self.deid_log = self.deid_log[self.deid_log[first_column].notna()]
-            
-            # reset index (shouldn't matter?)
-            self.deid_log.reset_index(drop=True, inplace=True)
-            
-        else:
-            raise FileNotFoundError(f"The file {file_path} does not exist.")        
+        """Read deid log into pandas dataframe, ignoring rows without available deids"""
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Deid log {file_path} does not exist!")        
+
+        # load deid log into data model 
+        self.deid_log = pd.read_excel(file_path, engine='openpyxl')
+        
+        # Filter out rows where first column is NaN (no deid available)
+        first_column = self.deid_log.columns[0]
+        self.deid_log = self.deid_log[self.deid_log[first_column].notna()]
+        self.deid_log.reset_index(drop=True, inplace=True)
+
   
-  
-    def get_empty_row_index_from_deid_log(self):
-        """Find the index of the first completely empty row (ignoring the first column)."""
-        empty_rows = self.deid_log.loc[:, self.deid_log.columns[1:]].isna().all(axis=1)
-        
-        # check if there's no empty rows left 
-        if not empty_rows.any():
-            raise ValueError("No available rows in deid log, run out of deids.")
-        
-        return empty_rows.idxmax()
 
-    def get_deid(self, row):
-        """Get deid from deid log, given a row index"""
-        return self.deid_log.at[row, self.deid_log.columns[0]]
-
-
-    def back_up_deid_log(self):
-        """back up current version of deid log (will overwrite files in current day)"""
-        backup_folder = os.path.join(os.path.dirname(self.DEID_LOG_FILEPATH), 'backup')
-        
-        if not os.path.exists(backup_folder):
-            os.makedirs(backup_folder)
-        
-        name, extension = os.path.splitext(self.DEID_LOG_FILEPATH)
-        new_file_name = name + "_" + datetime.now().strftime("%m-%d-%Y") + extension
-        backup_filepath = os.path.join(backup_folder, new_file_name)
-        shutil.copy2(self.DEID_LOG_FILEPATH, backup_filepath)
 
     def save_session_to_deid_log(self):
-        """Update deid log with current session information"""
+        """Get deid and update deid log with current session information"""
         
         # back up deid log before editing
         self.back_up_deid_log()
        
-        # get deid_log
+        # get deid log and determine first empty row
         df = self.deid_log.copy()
-        
-        # get first empty row
         empty_row_index = self.get_empty_row_index_from_deid_log()
+        
+        # check if there's rows available    
+        if empty_row_index >= len(df):
+            raise Exception("No empty rows available in the CSV")
         
         # set deid from log
         self.deid = self.get_deid(empty_row_index)
         
-        # Manually assign values to the DataFrame columns from data_dict
-        if empty_row_index < len(df):
-            # Fill out the identified empty row
-            df.at[empty_row_index, 'Study'] = self.session_info['study']
-            df.at[empty_row_index, 'Subject ID'] = self.session_info['subject_id']
-            df.at[empty_row_index, 'Visit Num'] = self.session_info['visit_number']
-            df.at[empty_row_index, 'Visit Date'] = self.session_info['date']
-            df.at[empty_row_index, 'Initials'] = self.session_info['subject_initials']
-            df.at[empty_row_index, 'Location'] = self.session_info['location']
-            df.at[empty_row_index, 'Net Serial Number'] = self.session_info['net_serial_number']
-            df.at[empty_row_index, 'Notes'] = self.session_info['other_notes']        
-        else:
-            raise Exception("No empty rows available in the CSV")
-                
+        # Update DataFrame with session info
+        cur_session_data = {
+            'Study': self.session_info['study'],
+            'Subject ID': self.session_info['subject_id'],
+            'Visit Num': self.session_info['visit_number'],
+            'Visit Date': self.session_info['date'],
+            'Initials': self.session_info['subject_initials'],
+            'Location': self.session_info['location'],
+            'Net Serial Number': self.session_info['net_serial_number'],
+            'Notes': self.session_info['other_notes']
+        }
+        for key, value in cur_session_data.items():
+            df.at[empty_row_index, key] = value   
+        
         # Add paradigms
         for eeg_file_dict in self.eeg_file_info:
             cur_paradigm = eeg_file_dict['paradigm']
@@ -808,13 +788,108 @@ class DataModel:
                 if pd.isna(df.at[empty_row_index, column_name]):
                     df.at[empty_row_index, column_name] = 1
                 else:
-                    df.at[empty_row_index, column_name] += 1
+                    df.at[empty_row_index, column_name] += 1  
+                        
+        # Update work book (only at specified row)
+        wb = load_workbook(self.DEID_LOG_FILEPATH)
+        sheet = wb.active
+        for col_idx, col_name in enumerate(df.columns, start=1):
+            sheet.cell(row=empty_row_index + 2, column=col_idx, value=df.at[empty_row_index, col_name])
+            
+        # Save the workbook with the updated row
+        wb.save(self.DEID_LOG_FILEPATH)
+
+
+    def back_up_deid_log(self):
+        """back up current version of deid log (will overwrite files in current day)"""
+        backup_folder = os.path.join(os.path.dirname(self.DEID_LOG_FILEPATH), 'backup')
+        if not os.path.exists(backup_folder):
+            os.makedirs(backup_folder)        
+        name, extension = os.path.splitext(os.path.basename(self.DEID_LOG_FILEPATH))
+        date_str = datetime.now().strftime("%m-%d-%Y")
+        new_file_name = f"{name}_{date_str}{extension}"
+        backup_filepath = os.path.join(backup_folder, new_file_name)
+        shutil.copy2(self.DEID_LOG_FILEPATH, backup_filepath)
+
         
-        # Update deid log
-        df.to_excel(self.DEID_LOG_FILEPATH, index=False, engine='openpyxl')                
-    
+    def get_empty_row_index_from_deid_log(self):
+        """Find the index of the first completely empty row (ignoring the first column)"""
+        empty_rows = self.deid_log.loc[:, self.deid_log.columns[1:]].isna().all(axis=1)
+        if not empty_rows.any():
+            raise ValueError("No available rows in deid log, run out of deids.")
+        return empty_rows.idxmax()
+
+
+    def get_deid(self, row):
+        """Get deid from deid log, given a row index"""
+        return self.deid_log.at[row, self.deid_log.columns[0]]
+
+
+
+
 
                      
+    def copy_and_rename_files(self):
+        paradigm_counter = {}
+        
+        destination_folder = self.file_output_folder 
+        
+        dat = self.session_info
+
+        # Loop through all files
+        for cur_file_info in self.eeg_file_info:
+            src_path_raw = cur_file_info['raw_file']
+            src_path_mff = cur_file_info['raw_file']
+            
+            # get extensions
+            raw_file_ext = os.path.splitext(src_path_raw)[1]
+            mff_file_ext = os.path.splitext(src_path_mff)[1]
+
+            if src_path_raw and src_path_mff:
+                paradigm = cur_file_info['paradigm']
+                
+                # Initialize or update the counter for this file type
+                if paradigm not in paradigm_counter:
+                    paradigm_counter[paradigm] = 1
+                else:
+                    paradigm_counter[paradigm] += 1
+                
+                # Create base file name with optional counter
+                counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
+                base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
+
+                # Add additional modifiers if needed
+                if self.session_info['cap_type'] == 'babycap':
+                    base_name += "_babycap"
+                if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
+                    base_name += "_speakers"
+                    
+                # Sub directory path for saving files in correct folder 
+                final_directory_path = os.path.join(destination_folder, dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
+                os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
+                
+                # Create final file path
+                dst_path_raw = os.path.join(final_directory_path, base_name + raw_file_ext)
+                dst_path_mff = os.path.join(final_directory_path, base_name + mff_file_ext)
+                
+                # Check if file already exists
+                if os.path.exists(dst_path_raw):
+                    raise FileExistsError(f"File '{dst_path_raw}' already exists (this should never happen you can panic)")
+                
+                # Check if file already exists
+                if os.path.exists(dst_path_mff):
+                    raise FileExistsError(f"File '{dst_path_mff}' already exists (this should never happen you can panic)")
+                
+                
+                # Make copy at destination folder
+                shutil.copy2(src_path_raw, dst_path_raw)
+                shutil.copy2(src_path_mff, dst_path_mff)
+
+
+        # save notes file
+        new_notes_file_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}" + os.path.splitext(self.notes_file)[1]
+        shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))   
+        
     def save_deid_files(self):
         
         destination_folder = self.file_output_folder 
@@ -856,74 +931,18 @@ class DataModel:
         new_notes_file_name = f"{self.deid}_notes" + os.path.splitext(self.notes_file)[1]
         shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))   
         
-                     
         
-    def copy_and_rename_files(self):
-        paradigm_counter = {}
         
-        destination_folder = self.file_output_folder 
-        
-        dat = self.session_info
-
-        # Loop through all files
-        for cur_file_info in self.eeg_file_info:
-            src_path_raw = cur_file_info['raw_file']
-            src_path_mff = cur_file_info['raw_file']
-            
-            # get extensions
-            raw_file_ext = os.path.splitext(src_path_raw)[1]
-            mff_file_ext = os.path.splitext(src_path_mff)[1]
-
-            if src_path_raw and src_path_mff:
-                paradigm = cur_file_info['paradigm']
-                
-                # Initialize or update the counter for this file type
-                if paradigm not in paradigm_counter:
-                    paradigm_counter[paradigm] = 1
-                else:
-                    paradigm_counter[paradigm] += 1
-                
-                # Create base file name with optional counter
-                counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
-                base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
-
-                # Add additional modifiers if needed
-                if self.session_info['cap_type'] == 'babycap':
-                    base_name += "_babycap"
-                if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
-                    base_name += "_speakers"
-                    
-                # Sub directory path for saving files in correct folder 
-                final_directory_path = os.path.join(destination_folder, dat['study'], dat['subject_id'], dat['visit_number'])
-                os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
-                
-                # Create final file path
-                dst_path_raw = os.path.join(final_directory_path, base_name + raw_file_ext)
-                dst_path_mff = os.path.join(final_directory_path, base_name + mff_file_ext)
-                
-                # Make copy at destination folder
-                shutil.copy2(src_path_raw, dst_path_raw)
-                shutil.copy2(src_path_mff, dst_path_mff)
-
-
-        # save notes file
-        new_notes_file_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}" + os.path.splitext(self.notes_file)[1]
-        shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))   
-        
-
     def save_sidecar_files(self):
-        print("save sidecar must implement")
-        
+        """Save session and file info in json sidecar file"""
+                
         paradigm_counter = {}
         destination_folder = self.file_output_folder 
-
         dat = self.session_info 
+        
         # Loop through all files
         for cur_file_info in self.eeg_file_info:
-            
             final_sidecar_dict = self.session_info | cur_file_info
-            
-            
             paradigm = final_sidecar_dict['paradigm']
             
             # Initialize or update the counter for this file type
@@ -943,14 +962,36 @@ class DataModel:
                 base_name += "_speakers"
                 
             # Sub directory path for saving files in correct folder 
-            sub_directories = os.path.join(dat['study'], dat['subject_id'], dat['visit_number'])
+            final_directory_path = os.path.join(destination_folder, dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
+            os.makedirs(final_directory_path, exist_ok=True)
 
             # Save json file            
-            dst_path_sidecar = os.path.join(destination_folder, sub_directories, base_name + ".json")
+            dst_path_sidecar = os.path.join(final_directory_path, base_name + ".json")
             with open(dst_path_sidecar, "w") as outfile:
                 json.dump(final_sidecar_dict, outfile, indent=4)
         
       
+      
+      
+      
+      
+    def safe_file_copy(src_path, dst_folder, file_name):
+        """Create destination dir if it doesn't exist --> save file, error out if file already exists"""
+        
+        # Create directory path if it doesn't exist
+        os.makedirs(dst_folder, exist_ok=True)
+        
+        # Create the full destination path
+        dst_path = os.path.join(dst_folder, file_name)
+        
+        # Check if the file already exists
+        if os.path.exists(dst_path):
+            raise FileExistsError(f"File '{dst_path}' already exists")
+        
+        # Copy the file
+        shutil.copy2(src_path, dst_path)
+    
+    
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = MainWindow()
