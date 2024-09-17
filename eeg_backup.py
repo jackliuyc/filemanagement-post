@@ -128,7 +128,7 @@ class SessionInfoForm(QWidget):
 
             if field.get("editable", True):
                 indicator = QLabel("❌")  # Red X
-                #indicator.setStyleSheet("color: red; font-size: 16px;")
+                indicator.setStyleSheet("color: red; font-size: 16px;")
                 self.indicators[field_name] = indicator
                 widget_row.addWidget(indicator)
 
@@ -159,10 +159,8 @@ class SessionInfoForm(QWidget):
                 widget.setText(field["default"])
             if "editable" in field and not field["editable"]:
                 widget.setReadOnly(True)
-                widget.setStyleSheet("font-size: 1px; background-color: #F0F0F0;")  # Grey out non-editable fields
             else:
                 widget.textChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
-                widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "combo":
             widget = QComboBox()
             widget.setMinimumHeight(30)
@@ -171,7 +169,6 @@ class SessionInfoForm(QWidget):
                 widget.currentTextChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
             else:
                 widget.setEnabled(False)
-            widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "date":
             widget = QDateEdit()
             widget.setMinimumHeight(30)
@@ -181,7 +178,6 @@ class SessionInfoForm(QWidget):
                 widget.dateChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
             else:
                 widget.setReadOnly(True)
-            widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "spinbox":
             widget = QSpinBox()
             widget.setMinimumHeight(30)
@@ -191,7 +187,6 @@ class SessionInfoForm(QWidget):
                 widget.valueChanged.connect(self.validate_all_fields)  # Connect to validate_all_fields
             else:
                 widget.setReadOnly(True)
-            widget.setStyleSheet("font-size: 1px;")
         elif field["type"] == "hidden":
             widget = QLineEdit()
             widget.setVisible(False)
@@ -274,7 +269,6 @@ class SessionInfoForm(QWidget):
 
         
     
-
 
 
 
@@ -519,7 +513,6 @@ class MainWindow(QMainWindow):
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
             }
-
             QTabBar::tab:selected {
                 background-color: #FFFFFF;
                 border-bottom-color: #FFFFFF;
@@ -626,7 +619,7 @@ class MainWindow(QMainWindow):
             self.file_upload_tab.update_file_info()
 
             # update deid log/get deid    
-            self.data_model.save_to_csv(self.data_model.file_output_folder)
+            self.data_model.save_session_to_deid_log()
             QMessageBox.information(self, 'title', f'your deid is: {self.data_model.deid}. saved to csv. do not touch anything')
             
             # copy corrected files
@@ -659,8 +652,7 @@ class MainWindow(QMainWindow):
 
 class DataModel:
     
-    FILE_TYPE_TO_COLUMN = {
-        "notes": None, 
+    PARADIGM_TO_DEID_COLUMN_NAME = {
         "rest": "Resting", 
         "resteyesclosed" : "Resting",
         "chirp": "Chirp", 
@@ -680,9 +672,9 @@ class DataModel:
         "tactilehab": "Tactile Habituation", 
         "oddball": "Oddball", 
         "other": "Other"
-    },
+    }
 
-    DEID_LOG_FILEPATH = 'C:/Users/liu7tv/OneDrive - cchmc/deid_logs_testing/DeidentifyPatientNum_NEW_testing.xlsm'  
+    DEID_LOG_FILEPATH = 'C:/Users/liu7tv/OneDrive - cchmc/deid_logs_testing/DeidentifyPatientNum_NEW.xlsx'  
     
     def __init__(self):
 
@@ -693,7 +685,7 @@ class DataModel:
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/eeg_backup/'
-        self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/OTHER'
+        self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/output'
 
         # Notes file path         
         self.notes_file = ""
@@ -767,17 +759,32 @@ class DataModel:
         return self.deid_log.at[row, self.deid_log.columns[0]]
 
 
-    def save_to_csv(self, file_path):
+    def back_up_deid_log(self):
+        """back up current version of deid log (will overwrite files in current day)"""
+        backup_folder = os.path.join(os.path.dirname(self.DEID_LOG_FILEPATH), 'backup')
+        
+        if not os.path.exists(backup_folder):
+            os.makedirs(backup_folder)
+        
+        name, extension = os.path.splitext(self.DEID_LOG_FILEPATH)
+        new_file_name = name + "_" + datetime.now().strftime("%m-%d-%Y") + extension
+        backup_filepath = os.path.join(backup_folder, new_file_name)
+        shutil.copy2(self.DEID_LOG_FILEPATH, backup_filepath)
+
+    def save_session_to_deid_log(self):
+        """Update deid log with current session information"""
+        
+        # back up deid log before editing
+        self.back_up_deid_log()
        
-        # idk
+        # get deid_log
         df = self.deid_log.copy()
-     
+        
         # get first empty row
         empty_row_index = self.get_empty_row_index_from_deid_log()
         
         # set deid from log
         self.deid = self.get_deid(empty_row_index)
-        
         
         # Manually assign values to the DataFrame columns from data_dict
         if empty_row_index < len(df):
@@ -795,8 +802,8 @@ class DataModel:
                 
         # Add paradigms
         for eeg_file_dict in self.eeg_file_info:
-            cur_file_type = eeg_file_dict['paradigm']
-            column_name = self.FILE_TYPE_TO_COLUMN.get(cur_file_type, None)
+            cur_paradigm = eeg_file_dict['paradigm']
+            column_name = self.PARADIGM_TO_DEID_COLUMN_NAME.get(cur_paradigm, None)
             if column_name:
                 if pd.isna(df.at[empty_row_index, column_name]):
                     df.at[empty_row_index, column_name] = 1
@@ -804,85 +811,144 @@ class DataModel:
                     df.at[empty_row_index, column_name] += 1
         
         # Update deid log
-        
+        df.to_excel(self.DEID_LOG_FILEPATH, index=False, engine='openpyxl')                
+    
+
                      
     def save_deid_files(self):
         
         destination_folder = self.file_output_folder 
 
-        file_type_counter = {}
+        paradigm_counter = {}
 
         # Loop through all files
-        for row in self.eeg_file_info:
-            src_path = row['raw_file']
+        for cur_file_info in self.eeg_file_info:
+            src_path = cur_file_info['raw_file']
+            
+            raw_file_ext = os.path.splitext(src_path)[1]
             if src_path:
-                file_type = row['paradigm']
+                paradigm = cur_file_info['paradigm']
                 
                 # Initialize or update the counter for this file type
-                if file_type not in file_type_counter:
-                    file_type_counter[file_type] = 1
+                if paradigm not in paradigm_counter:
+                    paradigm_counter[paradigm] = 1
                 else:
-                    file_type_counter[file_type] += 1
+                    paradigm_counter[paradigm] += 1
                 
                 # Create base file name with optional counter
-                counter = file_type_counter[file_type] if file_type_counter[file_type] > 1 else ""
-                base_name = f"{self.deid}_{file_type}{counter}"
+                counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
+                base_name = f"{self.deid}_{paradigm}{counter}"
 
                 # Add additional notes if needed
                 if self.session_info['cap_type'] == 'babycap':
                     base_name += "_babycap"
-                if self.session_info['audio_source'] == 'speakers' and file_type != 'rest':
+                if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
                     base_name += "_speakers"
 
                 # Create final file path
-                dst_path = os.path.join(destination_folder, base_name + os.path.splitext(src_path)[1])
+                dst_path = os.path.join(destination_folder, base_name + raw_file_ext)
 
                 # Make copy at destination folder
-                shutil.copy2(src_path, dst_path)        
+                shutil.copy2(src_path, dst_path)   
                 
         
+        # save notes file
+        new_notes_file_name = f"{self.deid}_notes" + os.path.splitext(self.notes_file)[1]
+        shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))   
+        
+                     
+        
     def copy_and_rename_files(self):
-        file_type_counter = {}
+        paradigm_counter = {}
         
         destination_folder = self.file_output_folder 
         
         dat = self.session_info
 
         # Loop through all files
-        for row in self.eeg_file_info:
-            src_path_raw = row['raw_file']
-            src_path_mff = row['raw_file']
+        for cur_file_info in self.eeg_file_info:
+            src_path_raw = cur_file_info['raw_file']
+            src_path_mff = cur_file_info['raw_file']
+            
+            # get extensions
+            raw_file_ext = os.path.splitext(src_path_raw)[1]
+            mff_file_ext = os.path.splitext(src_path_mff)[1]
 
             if src_path_raw and src_path_mff:
-                file_type = row['paradigm']
+                paradigm = cur_file_info['paradigm']
                 
                 # Initialize or update the counter for this file type
-                if file_type not in file_type_counter:
-                    file_type_counter[file_type] = 1
+                if paradigm not in paradigm_counter:
+                    paradigm_counter[paradigm] = 1
                 else:
-                    file_type_counter[file_type] += 1
+                    paradigm_counter[paradigm] += 1
                 
                 # Create base file name with optional counter
-                counter = file_type_counter[file_type] if file_type_counter[file_type] > 1 else ""
-                base_name = f"{dat['study']}_{dat['visit_number']}_{file_type}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
+                counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
+                base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
 
-                # Add additional notes if needed
+                # Add additional modifiers if needed
                 if self.session_info['cap_type'] == 'babycap':
                     base_name += "_babycap"
-                if self.session_info['audio_source'] == 'speakers' and file_type != 'rest':
+                if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
                     base_name += "_speakers"
-
+                    
+                # Sub directory path for saving files in correct folder 
+                final_directory_path = os.path.join(destination_folder, dat['study'], dat['subject_id'], dat['visit_number'])
+                os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
+                
                 # Create final file path
-                dst_path_raw = os.path.join(destination_folder, base_name + os.path.splitext(src_path_raw)[1])
-                dst_path_mff = os.path.join(destination_folder, base_name + os.path.splitext(src_path_mff)[1])
+                dst_path_raw = os.path.join(final_directory_path, base_name + raw_file_ext)
+                dst_path_mff = os.path.join(final_directory_path, base_name + mff_file_ext)
                 
                 # Make copy at destination folder
                 shutil.copy2(src_path_raw, dst_path_raw)
                 shutil.copy2(src_path_mff, dst_path_mff)
 
 
+        # save notes file
+        new_notes_file_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}" + os.path.splitext(self.notes_file)[1]
+        shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))   
+        
+
     def save_sidecar_files(self):
         print("save sidecar must implement")
+        
+        paradigm_counter = {}
+        destination_folder = self.file_output_folder 
+
+        dat = self.session_info 
+        # Loop through all files
+        for cur_file_info in self.eeg_file_info:
+            
+            final_sidecar_dict = self.session_info | cur_file_info
+            
+            
+            paradigm = final_sidecar_dict['paradigm']
+            
+            # Initialize or update the counter for this file type
+            if paradigm not in paradigm_counter:
+                paradigm_counter[paradigm] = 1
+            else:
+                paradigm_counter[paradigm] += 1
+            
+            # Create base file name with optional counter
+            counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
+            base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
+
+            # Add additional modifiers if needed
+            if self.session_info['cap_type'] == 'babycap':
+                base_name += "_babycap"
+            if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
+                base_name += "_speakers"
+                
+            # Sub directory path for saving files in correct folder 
+            sub_directories = os.path.join(dat['study'], dat['subject_id'], dat['visit_number'])
+
+            # Save json file            
+            dst_path_sidecar = os.path.join(destination_folder, sub_directories, base_name + ".json")
+            with open(dst_path_sidecar, "w") as outfile:
+                json.dump(final_sidecar_dict, outfile, indent=4)
         
       
 if __name__ == "__main__":

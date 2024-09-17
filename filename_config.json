@@ -57,7 +57,7 @@
             ],
             "default": "",
             "validation": "^v\\d{1,2}(d\\d{1,2})?$",
-            "error_message": "Visit number must be v1, v2, v3, etc."
+            "error_message": "Visit number must be selected"
         },
         "paradigm": {
             "name": "paradigm",
@@ -94,7 +94,7 @@
             "label": "Subject Initials",
             "type": "text",
             "validation": "^[A-Z]{2,3}$",
-            "error_message": "Subject Initials must be 2 or 3 uppercase letters"
+            "error_message": "Initials must be 2 or 3 uppercase letters"
         },
         "date": {
             "name": "date",
@@ -139,8 +139,8 @@
             "type": "combo",
             "options": [
                 "",
-                "speakers",
-                "headphones"
+                "headphones",
+                "speakers"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
@@ -221,7 +221,7 @@
             ],
             "default": "",
             "validation": "^v\\d{1,2}(d\\d{1,2})?$",
-            "error_message": "Visit number must be v1, v2, v3, etc."
+            "error_message": "Visit number must be selected"
         },
         "paradigm": {
             "name": "paradigm",
@@ -254,7 +254,7 @@
             "label": "Subject Initials",
             "type": "text",
             "validation": "^[A-Z]{2,3}$",
-            "error_message": "Subject Initials must be 2 or 3 uppercase letters"
+            "error_message": "Initials must be 2 or 3 uppercase letters"
         },
         "date": {
             "name": "date",
@@ -299,8 +299,8 @@
             "type": "combo",
             "options": [
                 "",
-                "speakers",
-                "headphones"
+                "headphones",
+                "speakers"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
@@ -349,7 +349,7 @@
                 "v4post"
             ],
             "validation": "^v\\d+pre|v\\d+post$",
-            "error_message": "Phase must be v1pre, v1post, v2pre, v2post, v3pre, v3post, v4pre, or v4post"
+            "error_message": "Visit number must be selected"
         },
         "paradigm": {
             "name": "paradigm",
@@ -379,14 +379,14 @@
             "label": "Subject Initials",
             "type": "text",
             "validation": "^[A-Z]{2,3}$",
-            "error_message": "Subject Initials must be 2 or 3 uppercase letters"
+            "error_message": "Initials must be 2 or 3 uppercase letters"
         },
         "date": {
             "name": "date",
             "label": "Date",
             "type": "date",
             "validation": "^\\d{2}-\\d{2}-\\d{4}$",
-            "error_message": "Date must be in MM-DD-YYYY format",
+            "error_message": "Date must be MM-DD-YYYY",
             "no_leading_underscore": true
         },
         "location": {
@@ -424,8 +424,8 @@
             "type": "combo",
             "options": [
                 "",
-                "speakers",
-                "headphones"
+                "headphones",
+                "speakers"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
@@ -474,7 +474,7 @@
                 "v4post"
             ],
             "validation": "^v\\d+pre|v\\d+post$",
-            "error_message": "Phase must be v1pre, v1post, v2pre, v2post, v3pre, v3post, v4pre, or v4post"
+            "error_message": "Visit number must be selected"
         },
         "paradigm": {
             "name": "paradigm",
@@ -508,7 +508,7 @@
             "label": "Subject Initials",
             "type": "text",
             "validation": "^[A-Z]{2,3}$",
-            "error_message": "Subject Initials must be 2 or 3 uppercase letters"
+            "error_message": "Initials must be 2 or 3 uppercase letters"
         },
         "date": {
             "name": "date",
@@ -553,8 +553,8 @@
             "type": "combo",
             "options": [
                 "",
-                "speakers",
-                "headphones"
+                "headphones",
+                "speakers"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
