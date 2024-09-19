@@ -467,11 +467,7 @@
                 "v1pre",
                 "v1post",
                 "v2pre",
-                "v2post",
-                "v3pre",
-                "v3post",
-                "v4pre",
-                "v4post"
+                "v2post"
             ],
             "validation": "^v\\d+pre|v\\d+post$",
             "error_message": "Visit number must be selected"
@@ -486,12 +482,8 @@
                 "rest",
                 "chirp",
                 "ssct",
-                "RLEEG",
-                "Talk",
-                "Listen",
-                "VDAudio",
-                "VDNoAudio",
-                "Other"
+                "resteyesclosed",
+                "other"
             ],
             "validation": "^[A-Za-z]+$",
             "error_message": "Paradigm must be selected"

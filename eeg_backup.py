@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, 
     QLabel, QLineEdit, QComboBox, QPushButton, QDateEdit, QSpinBox, 
     QMessageBox, QScrollArea, QFrame, QFileDialog, QTabWidget, 
-    QSizePolicy, QAction
+    QSizePolicy, QAction, QProgressBar, QDialog
 )
 
     
@@ -618,23 +618,41 @@ class MainWindow(QMainWindow):
         
         if all_valid:
             
+            
+            progress_dialog = ProgressDialog(self)
+            progress_dialog.show()
+            
+            # Set the range of the progress bar
+            progress_dialog.progress_bar.setRange(0, 4)
+            
+            
+            
+            
             # Update data model with file info
             self.file_upload_tab.update_file_info()
+            progress_dialog.update_progress(1)
 
             # update deid log/get deid    
             self.data_model.save_session_to_deid_log()
-            QMessageBox.information(self, 'title', f'your deid is: {self.data_model.deid}\nsaved to csv\ndo not touch anything')
+            progress_dialog.update_progress(2)
             
             # copy corrected files
             self.data_model.copy_and_rename_files()   
-            QMessageBox.information(self, 'title', 'copied corrected files\ndo not touch anything')
-         
+            progress_dialog.update_progress(3)
+            
             # copy deid files
             self.data_model.save_deid_files()
-            QMessageBox.information(self, 'title', 'copied deid files\ndo not touch anything')
+            progress_dialog.update_progress(4)
 
             # create sidecar files
             #self.data_model.save_sidecar_files()
+
+
+
+            # display deid
+            QMessageBox.information(self, 'title', f'your deid is: {self.data_model.deid}\nsaved to csv\ndo not touch anything')
+
+
 
             # reset data
             self.reset_form()
@@ -652,7 +670,24 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. If you see this something is really really wrong.")
 
 
+class ProgressDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Progress")
+        self.setModal(True)
+        self.layout = QVBoxLayout(self)
 
+        self.progress_bar = QProgressBar(self)
+        self.layout.addWidget(self.progress_bar)
+
+        self.cancel_button = QPushButton("Cancel", self)
+        self.cancel_button.clicked.connect(self.close)
+        self.layout.addWidget(self.cancel_button)
+
+        self.setLayout(self.layout)
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
 
 
 
@@ -766,7 +801,6 @@ class DataModel:
         # set deid from log
         self.deid = self.get_deid(empty_row_index)
         
-        print(self.session_info['date'])
         
         # Update DataFrame with session info
         cur_session_data = {
@@ -781,6 +815,12 @@ class DataModel:
         }
         for key, value in cur_session_data.items():
             df.at[empty_row_index, key] = value   
+            
+        print("#####################################")
+        print("ALL MY HOMIES HATE EXCEL DATE PARSING")
+        print(cur_session_data['Visit Date'])
+        print(type(cur_session_data['Visit Date']))
+        print("#####################################")
         
         # Add paradigms
         for eeg_file_dict in self.eeg_file_info:
@@ -914,7 +954,7 @@ class DataModel:
                 
                 # Create base file name with optional counter
                 counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
-                base_name = f"{self.deid}_{paradigm}{counter}"
+                base_name = f"{self.deid:04}_{paradigm}{counter}"
 
                 # Add additional notes if needed
                 if self.session_info['cap_type'] == 'babycap':
@@ -943,6 +983,9 @@ class DataModel:
         
         
         
+    ####################################################
+    ############ TEMPORARILY NOT USED ##################
+    ####################################################   
     def save_sidecar_files(self):
         """Save session and file info in json sidecar file"""
                 
@@ -980,10 +1023,6 @@ class DataModel:
             with open(dst_path_sidecar, "w") as outfile:
                 json.dump(final_sidecar_dict, outfile, indent=4)
         
-      
-      
-      
-      
       
     def safe_file_copy(src_path, dst_folder, file_name):
         """Create destination dir if it doesn't exist --> save file, error out if file already exists"""
