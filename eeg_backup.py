@@ -634,12 +634,12 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, 'title', 'copied deid files\ndo not touch anything')
 
             # create sidecar files
-            self.data_model.save_sidecar_files()
+            #self.data_model.save_sidecar_files()
 
             # reset data
             self.reset_form()
-            if datetime.now().microsecond % 100 < 5:
-                ascii_art = r"""form is reset here is a lucky 5% cat
+            if datetime.now().microsecond % 100 < 10:
+                ascii_art = r"""form is reset here is a lucky 10% cat
                  /\_/\  
                 ( o.o ) 
                 > ^ <
@@ -690,8 +690,8 @@ class DataModel:
             self.CONFIG_DICT = json.load(f)
 
         # Output folder to save renamed files
-        self.file_output_folder = 'D:/eeg_backup/'
-        self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/output'
+        self.file_output_folder = 'D:/zz_WORKING_DIRECTORY/'
+        #self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/output'
 
         # Notes file path         
         self.notes_file = None
@@ -766,6 +766,8 @@ class DataModel:
         # set deid from log
         self.deid = self.get_deid(empty_row_index)
         
+        print(self.session_info['date'])
+        
         # Update DataFrame with session info
         cur_session_data = {
             'Study': self.session_info['study'],
@@ -839,7 +841,7 @@ class DataModel:
         # Loop through all files
         for cur_file_info in self.eeg_file_info:
             src_path_raw = cur_file_info['raw_file']
-            src_path_mff = cur_file_info['raw_file']
+            src_path_mff = cur_file_info['mff_folder']
             
             # get extensions
             raw_file_ext = os.path.splitext(src_path_raw)[1]
@@ -865,7 +867,7 @@ class DataModel:
                     base_name += "_speakers"
                     
                 # Sub directory path for saving files in correct folder 
-                final_directory_path = os.path.join(destination_folder, dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
+                final_directory_path = os.path.join(destination_folder, "back_up", dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
                 os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
                 
                 # Create final file path
@@ -883,7 +885,7 @@ class DataModel:
                 
                 # Make copy at destination folder
                 shutil.copy2(src_path_raw, dst_path_raw)
-                shutil.copy2(src_path_mff, dst_path_mff)
+                shutil.copytree(src_path_mff, dst_path_mff)
 
 
         # save notes file
@@ -920,16 +922,24 @@ class DataModel:
                 if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
                     base_name += "_speakers"
 
+                
+                
+                
+                # Sub directory path for saving files in correct folder 
+                final_directory_path = os.path.join(destination_folder, "deidentified")
+                os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
+                
                 # Create final file path
-                dst_path = os.path.join(destination_folder, base_name + raw_file_ext)
+                dst_path_deid = os.path.join(final_directory_path, base_name + raw_file_ext)
+                
 
                 # Make copy at destination folder
-                shutil.copy2(src_path, dst_path)   
+                shutil.copy2(src_path, dst_path_deid)   
                 
         
         # save notes file
         new_notes_file_name = f"{self.deid}_notes" + os.path.splitext(self.notes_file)[1]
-        shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))   
+        shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))   
         
         
         
@@ -990,6 +1000,7 @@ class DataModel:
         
         # Copy the file
         shutil.copy2(src_path, dst_path)
+    
     
     
 if __name__ == "__main__":

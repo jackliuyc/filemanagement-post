@@ -485,7 +485,7 @@
                 "",
                 "rest",
                 "chirp",
-                "SSCT",
+                "ssct",
                 "RLEEG",
                 "Talk",
                 "Listen",
@@ -500,8 +500,8 @@
             "name": "subject_id",
             "label": "Subject ID",
             "type": "text",
-            "validation": "^101-\\d{2}$",
-            "error_message": "Subject ID must be 101-##"
+            "validation": "^101-\\d{3}$",
+            "error_message": "Subject ID must be 101-###"
         },
         "subject_initials": {
             "name": "subject_initials",
