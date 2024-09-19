@@ -677,6 +677,9 @@ class ProgressDialog(QDialog):
         self.setModal(True)
         self.layout = QVBoxLayout(self)
 
+        self.warning_label = QLabel("FILES ARE BEING COPIED. PLEASE DO NOT TOUCH ANYTHING\nGUI WILL STOP RESPONDING BUT THAT IS OKAY\nWILL FIX THIS LATER", self)
+        self.layout.addWidget(self.warning_label)
+
         self.progress_bar = QProgressBar(self)
         self.layout.addWidget(self.progress_bar)
 
@@ -685,6 +688,7 @@ class ProgressDialog(QDialog):
         self.layout.addWidget(self.cancel_button)
 
         self.setLayout(self.layout)
+
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
