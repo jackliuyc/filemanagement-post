@@ -606,9 +606,9 @@ class MainWindow(QMainWindow):
             
             
     def confirm_file_info(self):
-        """When file confirm button is pressed: double check validity, then process files"""        
+        """When file confirm button is pressed: double check validity, then process files"""
         
-        # Check all file fields filled out 
+        # Check all file fields filled out
         all_valid = all(
             section["paradigm_combo"].currentIndex() != 0 and
             section["raw_label"].text() != "No file selected" and
@@ -618,54 +618,45 @@ class MainWindow(QMainWindow):
         
         if all_valid:
             
-            
+            # initialize progress dialog
             progress_dialog = ProgressDialog(self)
             progress_dialog.show()
-            
-            # Set the range of the progress bar
-            progress_dialog.progress_bar.setRange(0, 4)
-            
-            
-            
-            
-            # Update data model with file info
+
+            # update data model with file information
             self.file_upload_tab.update_file_info()
-            progress_dialog.update_progress(1)
+            progress_dialog.update_progress(20)
 
-            # update deid log/get deid    
+            # save session and file info to deid log
             self.data_model.save_session_to_deid_log()
-            progress_dialog.update_progress(2)
-            
+            progress_dialog.update_progress(40)
+
             # copy corrected files
-            self.data_model.copy_and_rename_files()   
-            progress_dialog.update_progress(3)
-            
-            # copy deid files
+            self.data_model.copy_and_rename_files()
+            progress_dialog.update_progress(60)
+
+            # copy deid files 
             self.data_model.save_deid_files()
-            progress_dialog.update_progress(4)
+            progress_dialog.update_progress(80)
 
-            # create sidecar files
-            #self.data_model.save_sidecar_files()
-
-
-
-            # display deid
-            QMessageBox.information(self, 'title', f'your deid is: {self.data_model.deid}\nsaved to csv\ndo not touch anything')
-
-
-
-            # reset data
-            self.reset_form()
+            # close progress dialog
+            progress_dialog.accept()
+            
+            # display deid and confirm file transfer
             if datetime.now().microsecond % 100 < 10:
-                ascii_art = r"""form is reset here is a lucky 10% cat
+                message = r"""File transfer complete. Here is a lucky cat
                  /\_/\  
                 ( o.o ) 
                 > ^ <
                 """
-                QMessageBox.information(self, 'title', ascii_art)
             else:
-                QMessageBox.information(self, 'title', 'form is reset')
-        
+                message = "File transfer complete."
+            message += f"\n\nYour DeID is: {self.data_model.deid:04}"
+            QMessageBox.information(self, 'title', message)
+
+
+            # reset for next file
+            self.reset_form()
+
         else:
             QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. If you see this something is really really wrong.")
 
@@ -677,21 +668,17 @@ class ProgressDialog(QDialog):
         self.setModal(True)
         self.layout = QVBoxLayout(self)
 
-        self.warning_label = QLabel("FILES ARE BEING COPIED. PLEASE DO NOT TOUCH ANYTHING\nGUI WILL STOP RESPONDING BUT THAT IS OKAY\nWILL FIX THIS LATER", self)
+        self.warning_label = QLabel("FILES ARE BEING COPIED, DO NOT TOUCH ANYTHING\n\nUI MAY BECOME UNRESPONSIVE, THAT IS OKAY\n\n", self)
         self.layout.addWidget(self.warning_label)
 
         self.progress_bar = QProgressBar(self)
         self.layout.addWidget(self.progress_bar)
 
-        self.cancel_button = QPushButton("Cancel", self)
-        self.cancel_button.clicked.connect(self.close)
-        self.layout.addWidget(self.cancel_button)
-
         self.setLayout(self.layout)
-
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
+        QApplication.processEvents()
 
 
 
@@ -820,12 +807,7 @@ class DataModel:
         for key, value in cur_session_data.items():
             df.at[empty_row_index, key] = value   
             
-        print("#####################################")
-        print("ALL MY HOMIES HATE EXCEL DATE PARSING")
-        print(cur_session_data['Visit Date'])
-        print(type(cur_session_data['Visit Date']))
-        print("#####################################")
-        
+            
         # Add paradigms
         for eeg_file_dict in self.eeg_file_info:
             cur_paradigm = eeg_file_dict['paradigm']
@@ -840,8 +822,10 @@ class DataModel:
         wb = load_workbook(self.DEID_LOG_FILEPATH)
         sheet = wb.active
         for col_idx, col_name in enumerate(df.columns, start=1):
-            sheet.cell(row=empty_row_index + 2, column=col_idx, value=df.at[empty_row_index, col_name])
-            
+            cell = sheet.cell(row=empty_row_index + 2, column=col_idx, value=df.at[empty_row_index, col_name])
+            if col_name == 'Visit Date':
+                cell.number_format = "MM/DD/YYYY"
+
         # Save the workbook with the updated row
         wb.save(self.DEID_LOG_FILEPATH)
 
@@ -874,7 +858,6 @@ class DataModel:
 
 
 
-                     
     def copy_and_rename_files(self):
         paradigm_counter = {}
         
@@ -982,7 +965,7 @@ class DataModel:
                 
         
         # save notes file
-        new_notes_file_name = f"{self.deid}_notes" + os.path.splitext(self.notes_file)[1]
+        new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
         shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))   
         
         
