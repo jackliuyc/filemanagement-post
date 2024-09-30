@@ -323,7 +323,7 @@ class FileInputForm(QWidget):
         self.layout.addWidget(self.add_button)
         
         # Add confirm session info button
-        self.confirm_file_button = QPushButton("Confirm File Info")
+        self.confirm_file_button = QPushButton("Rename and Upload EEG Files")
         self.confirm_file_button.clicked.connect(self.confirm_file_info_signal)
         self.confirm_file_button.setEnabled(False)
         self.layout.addWidget(self.confirm_file_button)
@@ -904,163 +904,125 @@ class DataModel:
 
 
 
+    def create_directory(self, *path_parts):
+        """Create directories if they do not exist."""
+        final_directory_path = os.path.join(*path_parts)
+        os.makedirs(final_directory_path, exist_ok=True)
+        return final_directory_path
+
+
+    def generate_base_name(self, paradigm, counter=""):
+        """Generate base file name with all necessary data."""
+        dat = self.session_info
+        base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
+
+        # Add additional modifiers if needed
+        if self.session_info.get('cap_type') == 'babycap':
+            base_name += "_babycap"
+        if self.session_info.get('audio_source') == 'speakers' and paradigm != 'rest':
+            base_name += "_speakers"
+        
+        return base_name
+    
+
+    def check_file_exists(self, path):
+        """Check if a file exists and raise an error if it does."""
+        if os.path.exists(path):
+            raise FileExistsError(f"File '{path}' already exists (this should never happen you can panic)")
 
 
     def copy_and_rename_files(self):
         paradigm_counter = {}
-        
-        destination_folder = self.file_output_folder 
-        
+        destination_folder = self.file_output_folder
         dat = self.session_info
 
-        # Loop through all files
         for cur_file_info in self.eeg_file_info:
             src_path_raw = cur_file_info['raw_file']
             src_path_mff = cur_file_info['mff_folder']
+
+            # Skip files if paths are missing
+            if not src_path_raw or not src_path_mff:
+                continue
             
-            # get extensions
             raw_file_ext = os.path.splitext(src_path_raw)[1]
             mff_file_ext = os.path.splitext(src_path_mff)[1]
+            paradigm = cur_file_info['paradigm']
 
-            if src_path_raw and src_path_mff:
-                paradigm = cur_file_info['paradigm']
-                
-                # Initialize or update the counter for this file type
-                if paradigm not in paradigm_counter:
-                    paradigm_counter[paradigm] = 1
-                else:
-                    paradigm_counter[paradigm] += 1
-                
-                # Create base file name with optional counter
-                counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
-                base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
+            # Update counter for paradigm
+            counter = paradigm_counter.get(paradigm, 0) + 1
+            paradigm_counter[paradigm] = counter if counter > 1 else ""
 
-                # Add additional modifiers if needed
-                if self.session_info['cap_type'] == 'babycap':
-                    base_name += "_babycap"
-                if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
-                    base_name += "_speakers"
-                    
-                # Sub directory path for saving files in correct folder 
-                final_directory_path = os.path.join(destination_folder, "back_up", dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
-                os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
-                
-                # Create final file path
-                dst_path_raw = os.path.join(final_directory_path, base_name + raw_file_ext)
-                dst_path_mff = os.path.join(final_directory_path, base_name + mff_file_ext)
-                
-                # Check if file already exists
-                if os.path.exists(dst_path_raw):
-                    raise FileExistsError(f"File '{dst_path_raw}' already exists (this should never happen you can panic)")
-                
-                # Check if file already exists
-                if os.path.exists(dst_path_mff):
-                    raise FileExistsError(f"File '{dst_path_mff}' already exists (this should never happen you can panic)")
-                
-                
-                # Make copy at destination folder
-                shutil.copy2(src_path_raw, dst_path_raw)
-                shutil.copytree(src_path_mff, dst_path_mff)
+            base_name = self.generate_base_name(paradigm, paradigm_counter[paradigm])
+            final_directory_path = self.create_directory(destination_folder, "back_up", dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
+            
+            # Create destination paths
+            dst_path_raw = os.path.join(final_directory_path, base_name + raw_file_ext)
+            dst_path_mff = os.path.join(final_directory_path, base_name + mff_file_ext)
 
+            # Check if files already exist
+            self.check_file_exists(dst_path_raw)
+            self.check_file_exists(dst_path_mff)
 
-        # save notes file
+            # Copy files
+            shutil.copy2(src_path_raw, dst_path_raw)
+            shutil.copytree(src_path_mff, dst_path_mff)
+
+        # Save notes file
         new_notes_file_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}" + os.path.splitext(self.notes_file)[1]
-        shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))   
-        
-    def save_deid_files(self):
-        
-        destination_folder = self.file_output_folder 
+        shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))
 
+    def save_deid_files(self):
+        destination_folder = self.file_output_folder
         paradigm_counter = {}
 
-        # Loop through all files
         for cur_file_info in self.eeg_file_info:
             src_path = cur_file_info['raw_file']
-            
+            if not src_path:
+                continue
+
             raw_file_ext = os.path.splitext(src_path)[1]
-            if src_path:
-                paradigm = cur_file_info['paradigm']
-                
-                # Initialize or update the counter for this file type
-                if paradigm not in paradigm_counter:
-                    paradigm_counter[paradigm] = 1
-                else:
-                    paradigm_counter[paradigm] += 1
-                
-                # Create base file name with optional counter
-                counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
-                base_name = f"{self.deid:04}_{paradigm}{counter}"
+            paradigm = cur_file_info['paradigm']
 
-                # Add additional notes if needed
-                if self.session_info['cap_type'] == 'babycap':
-                    base_name += "_babycap"
-                if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
-                    base_name += "_speakers"
+            # Update counter for paradigm
+            counter = paradigm_counter.get(paradigm, 0) + 1
+            paradigm_counter[paradigm] = counter if counter > 1 else ""
 
-                
-                
-                
-                # Sub directory path for saving files in correct folder 
-                final_directory_path = os.path.join(destination_folder, "deidentified")
-                os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
-                
-                # Create final file path
-                dst_path_deid = os.path.join(final_directory_path, base_name + raw_file_ext)
-                
-
-                # Make copy at destination folder
-                shutil.copy2(src_path, dst_path_deid)   
-                
-        
-        # save notes file
-        new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
-        shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))   
-        
-        
-        
-    def save_net_placement_photos(self):
-
-
-        if self.net_placement_photos:
-
-
-
-            destination_folder = self.file_output_folder 
-            dat = self.session_info
-            paradigm = "netplacementphotos"
-            
-        
-            final_directory_path = os.path.join(destination_folder, "back_up", dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
-            os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
-            
-            
-            
-            base_name =  f"{dat['study']}_{dat['visit_number']}_{paradigm}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
-            
-            # Add additional modifiers if needed
-            if self.session_info['cap_type'] == 'babycap':
+            base_name = f"{self.deid:04}_{paradigm}{paradigm_counter[paradigm]}"
+            if self.session_info.get('cap_type') == 'babycap':
                 base_name += "_babycap"
-            if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
+            if self.session_info.get('audio_source') == 'speakers' and paradigm != 'rest':
                 base_name += "_speakers"
-                
-                
-                
-            
-            dst_path_zip = os.path.join(final_directory_path, base_name + ".zip")
-            
-            # Check if file already exists
-            if os.path.exists(dst_path_zip):
-                raise FileExistsError(f"File '{dst_path_zip}' already exists (this should never happen you can panic)")
-            
-            
 
-            try:
-                with ZipFile(dst_path_zip, 'w') as zip_file:
-                    for image in self.net_placement_photos:
-                        zip_file.write(image, os.path.basename(image))
-            except Exception as e:
-                QMessageBox.critical(None, "ERROR", f"Error zipping net placement photos:\n{str(e)}")
-                sys.exit(1)   
+            final_directory_path = self.create_directory(destination_folder, "deidentified")
+            dst_path_deid = os.path.join(final_directory_path, base_name + raw_file_ext)
+
+            shutil.copy2(src_path, dst_path_deid)
+
+        # Save notes file
+        new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
+        shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))
+
+    def save_net_placement_photos(self):
+        if not self.net_placement_photos:
+            return
+
+        destination_folder = self.file_output_folder
+        dat = self.session_info
+        paradigm = "netplacementphotos"
+
+        final_directory_path = self.create_directory(destination_folder, "back_up", dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
+        base_name = self.generate_base_name(paradigm)
+        dst_path_zip = os.path.join(final_directory_path, base_name + ".zip")
+
+        self.check_file_exists(dst_path_zip)
+
+        try:
+            with ZipFile(dst_path_zip, 'w') as zip_file:
+                for image in self.net_placement_photos:
+                    zip_file.write(image, os.path.basename(image))
+        except Exception as e:
+            QMessageBox.critical(None, "ERROR", f"Error zipping net placement photos:\n{str(e)}")
+            sys.exit(1)
             
                 
                 
