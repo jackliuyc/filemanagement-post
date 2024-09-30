@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
             # Disable first tab (have to reset whole session)
             self.tab_widget.setTabEnabled(0, False)
         else:
-            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. If you see this something is really really wrong.")
+            QMessageBox.warning(self, "WARNING", "Check that the fields are valid. If you see this something is really really wrong.")
             
             
     def confirm_file_info(self):
@@ -650,15 +650,15 @@ class MainWindow(QMainWindow):
                 """
             else:
                 message = "File transfer complete."
-            message += f"\n\nYour DeID is: {self.data_model.deid:04}"
-            QMessageBox.information(self, 'title', message)
+            message += f"\n\nYour DeID is: **{self.data_model.deid:04}**"
+            QMessageBox.information(self, 'Success', message)
 
 
             # reset for next file
             self.reset_form()
 
         else:
-            QMessageBox.warning(self, "Validation Error", "Check that the fields are valid. If you see this something is really really wrong.")
+            QMessageBox.warning(self, "WARNING", "Check that the fields are valid. If you see this something is really really wrong.")
 
 
 class ProgressDialog(QDialog):
@@ -711,13 +711,28 @@ class DataModel:
     def __init__(self):
 
         # Configuration dictionary containing presets
-        config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filename_config.json') 
-        with open(config_file_path, 'r') as f:
-            self.CONFIG_DICT = json.load(f)
+        self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filename_config.json') 
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/zz_WORKING_DIRECTORY/'
         #self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/output'
+
+        
+        # Error out if file paths aren't available 
+        if not os.path.exists(self.DEID_LOG_FILEPATH):
+            QMessageBox.critical(None, "ERROR", f"DeID log file path does not exist: {self.DEID_LOG_FILEPATH}")
+            sys.exit(1)
+        elif not os.path.exists(self.config_file_path):
+            QMessageBox.critical(None, "ERROR", f"Configuration file path does not exist: {self.config_file_path}")
+            sys.exit(1)         
+        elif not os.path.exists(self.file_output_folder):
+            QMessageBox.warning(None, "WARNING", f"Output folder does not exist: {self.file_output_folder} \nSelect a new file output folder.")
+        
+        
+        # Load configuration file
+        with open(self.config_file_path, 'r') as f:
+            self.CONFIG_DICT = json.load(f)
+
 
         # Notes file path         
         self.notes_file = None
