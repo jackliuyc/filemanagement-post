@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 
 from openpyxl import load_workbook
+from zipfile import ZipFile
 
 
 from PyQt5.QtCore import pyqtSignal, QDate
@@ -292,12 +293,19 @@ class FileInputForm(QWidget):
         # Main layout
         self.layout = QVBoxLayout(self)
 
-        # Text file input
-        self.notes_button = QPushButton("Upload Notes (.txt) file")
+        # Notes file input
+        self.notes_button = QPushButton("Upload Session Notes (.txt, .rtf)")
         self.notes_button.clicked.connect(self.upload_notes_file)
         self.notes_label = QLabel("No file selected")
         self.layout.addWidget(self.notes_button)
         self.layout.addWidget(self.notes_label)
+        
+        # Net placement photos
+        self.photos_button = QPushButton("Upload Net Placement Photos (.png, .jpg)")
+        self.photos_button.clicked.connect(self.upload_photos)
+        self.photos_label = QLabel("No photos selected")
+        self.layout.addWidget(self.photos_button)
+        self.layout.addWidget(self.photos_label)
         
         # Container for sections
         self.scroll_area = QScrollArea()
@@ -419,6 +427,24 @@ class FileInputForm(QWidget):
             self.notes_label.setText(filename)
             self.check_form_completion()
         
+    
+    def upload_photos(self):
+        """Open file dialog for user to select net placement photos"""
+        options = QFileDialog.Options()
+        files, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select Images",
+            "",
+            "Images (*.png *.jpg);;All Files (*)",
+            options=options
+        )
+        if files:
+            self.data_model.net_placement_photos = files
+            self.photos_label.setText(f"{len(files)} images selected")
+        else:
+            self.photos_label.setText("No photos selected")
+            self.check_form_completion()
+    
         
     def clear_files(self):
         """Clear all elements in form"""
@@ -616,51 +642,55 @@ class MainWindow(QMainWindow):
             for section in self.file_upload_tab.sections
         ) and self.file_upload_tab.notes_label != "No file selected"
         
-        if all_valid:
-            
-            # initialize progress dialog
-            progress_dialog = ProgressDialog(self)
-            progress_dialog.show()
-
-            # update data model with file information
-            self.file_upload_tab.update_file_info()
-            progress_dialog.update_progress(20)
-
-            # save session and file info to deid log
-            self.data_model.save_session_to_deid_log()
-            progress_dialog.update_progress(40)
-
-            # copy corrected files
-            self.data_model.copy_and_rename_files()
-            progress_dialog.update_progress(60)
-
-            # copy deid files 
-            self.data_model.save_deid_files()
-            progress_dialog.update_progress(80)
-
-            # close progress dialog
-            progress_dialog.accept()
-            
-            # display deid and confirm file transfer
-            if datetime.now().microsecond % 100 < 10:
-                message = r"""File transfer complete. Here is a lucky cat
-                 /\_/\  
-                ( o.o ) 
-                > ^ <
-                """
-            else:
-                message = "File transfer complete."
-            message += f"\n\nYour DeID is: **{self.data_model.deid:04}**"
-            QMessageBox.information(self, 'Success', message)
-
-
-            # reset for next file
-            self.reset_form()
-
-        else:
+        if not all_valid:
             QMessageBox.warning(self, "WARNING", "Check that the fields are valid. If you see this something is really really wrong.")
+            return
+        
+
+        # initialize progress dialog
+        progress_dialog = ProgressDialog(self)
+        progress_dialog.show()
+
+        # update data model with file information
+        self.file_upload_tab.update_file_info()
+        progress_dialog.update_progress(20)
+
+        # save session and file info to deid log
+        self.data_model.save_session_to_deid_log()
+        progress_dialog.update_progress(40)
+
+        # copy corrected files
+        self.data_model.copy_and_rename_files()
+        progress_dialog.update_progress(60)
+
+        # copy deid files 
+        self.data_model.save_deid_files()
+        progress_dialog.update_progress(80)
+        
+        # zip net placement photos
+        self.data_model.save_net_placement_photos()
+        progress_dialog.update_progress(100)
+
+        # close progress dialog
+        progress_dialog.accept()
+        
+        # display deid and confirm file transfer
+        if datetime.now().microsecond % 100 < 10:
+            message = r"""File transfer complete. Here is a lucky cat
+             /\_/\  
+            ( o.o ) 
+            > ^ <
+            """
+        else:
+            message = "File transfer complete."
+        message += f"\n\nYour DeID is: {self.data_model.deid:04}"
+        QMessageBox.information(self, 'Success', message)
 
 
+        # reset for next file
+        self.reset_form()
+
+  
 class ProgressDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -714,7 +744,7 @@ class DataModel:
         self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filename_config.json') 
 
         # Output folder to save renamed files
-        self.file_output_folder = 'D:/zz_WORKING_DIRECTORY/'
+        self.file_output_folder = 'D:/WORKING_DIRECTORY/'
         #self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/output'
 
         
@@ -736,6 +766,9 @@ class DataModel:
 
         # Notes file path         
         self.notes_file = None
+        
+        # Net placement photos path
+        self.net_placement_photos = None
         
         # Session information  
         self.session_info = {
@@ -985,6 +1018,57 @@ class DataModel:
         
         
         
+    def save_net_placement_photos(self):
+
+
+        if self.net_placement_photos:
+
+
+
+            destination_folder = self.file_output_folder 
+            dat = self.session_info
+            paradigm = "netplacementphotos"
+            
+        
+            final_directory_path = os.path.join(destination_folder, "back_up", dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
+            os.makedirs(final_directory_path, exist_ok=True)  # Create directories if they do not exist
+            
+            
+            
+            base_name =  f"{dat['study']}_{dat['visit_number']}_{paradigm}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
+            
+            # Add additional modifiers if needed
+            if self.session_info['cap_type'] == 'babycap':
+                base_name += "_babycap"
+            if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
+                base_name += "_speakers"
+                
+                
+                
+            
+            dst_path_zip = os.path.join(final_directory_path, base_name + ".zip")
+            
+            # Check if file already exists
+            if os.path.exists(dst_path_zip):
+                raise FileExistsError(f"File '{dst_path_zip}' already exists (this should never happen you can panic)")
+            
+            
+
+            try:
+                with ZipFile(dst_path_zip, 'w') as zip_file:
+                    for image in self.net_placement_photos:
+                        zip_file.write(image, os.path.basename(image))
+            except Exception as e:
+                QMessageBox.critical(None, "ERROR", f"Error zipping net placement photos:\n{str(e)}")
+                sys.exit(1)   
+            
+                
+                
+
+                
+                
+                
+                
     ####################################################
     ############ TEMPORARILY NOT USED ##################
     ####################################################   
