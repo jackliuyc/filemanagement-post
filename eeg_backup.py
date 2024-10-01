@@ -967,11 +967,12 @@ class DataModel:
             
             paradigm = cur_file_info['paradigm']
 
-            # Update counter for paradigm
-            counter = paradigm_counter.get(paradigm, 0) + 1
-            paradigm_counter[paradigm] = counter if counter > 1 else ""
+            # Update counter for paradigm and always store it as an integer
+            paradigm_counter[paradigm] = paradigm_counter.get(paradigm, 0) + 1
+            counter_str = f"{paradigm_counter[paradigm]}" if paradigm_counter[paradigm] > 1 else ""
 
-            base_name = self.generate_base_name(paradigm, paradigm_counter[paradigm])
+            # Only append the counter to the base name if it's greater than 1
+            base_name = self.generate_base_name(paradigm, counter_str)
             final_directory_path = self.create_directory(destination_folder, 'back_up', dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
             
             # Create destination paths
@@ -1005,10 +1006,10 @@ class DataModel:
             paradigm = cur_file_info['paradigm']
 
             # Update counter for paradigm
-            counter = paradigm_counter.get(paradigm, 0) + 1
-            paradigm_counter[paradigm] = counter if counter > 1 else ""
+            paradigm_counter[paradigm] = paradigm_counter.get(paradigm, 0) + 1
+            counter_str = f"{paradigm_counter[paradigm]}" if paradigm_counter[paradigm] > 1 else ""
 
-            base_name = f"{self.deid:04}_{paradigm}{paradigm_counter[paradigm]}"
+            base_name = f"{self.deid:04}_{paradigm}{counter_str}"
             if self.session_info.get('cap_type') == 'babycap':
                 base_name += "_babycap"
             if self.session_info.get('audio_source') == 'speakers' and paradigm != 'rest':
