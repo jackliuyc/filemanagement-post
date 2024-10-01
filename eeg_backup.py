@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 
 from openpyxl import load_workbook
+from openpyxl.styles import Protection
 from zipfile import ZipFile
 
 
@@ -66,7 +67,7 @@ class SessionInfoForm(QWidget):
         self.layout.addWidget(self.confirm_session_button)
         
         # Load first preset
-        self.reset_form()
+        self.reset_session_form()
         
 
     def get_current_study(self):
@@ -74,7 +75,7 @@ class SessionInfoForm(QWidget):
         return self.preset_combo.currentText()
 
         
-    def reset_form(self):
+    def reset_session_form(self):
         """Reset to default form and current study """        
         self.preset_combo.setCurrentIndex(0)
         self.load_preset(self.get_current_study())
@@ -90,8 +91,23 @@ class SessionInfoForm(QWidget):
         
         
     def load_preset(self, preset):
-        """Load UI elements of preset from configuration dict"""
-        self.clear_form()
+        """Clear and reset all form elements, clear input and indicators, then load UI elements of preset from configuration dict"""
+        
+        # Clear all elements and indicators in form
+        if self.scroll_content.layout() is not None:
+            # Clear the existing layouts
+            for i in reversed(range(self.scroll_content.layout().count())):
+                layout = self.scroll_content.layout().itemAt(i).layout()
+                if layout is not None:
+                    for j in reversed(range(layout.rowCount())):
+                        layout.removeRow(j)
+            # Remove the column layouts
+            while self.scroll_content.layout().count() > 0:
+                item = self.scroll_content.layout().takeAt(0)
+                if item.layout():
+                    item.layout().setParent(None)
+        self.inputs.clear()
+        self.indicators.clear()
         
         # Load preset from data model
         preset = self.data_model.CONFIG_DICT[preset]
@@ -196,24 +212,6 @@ class SessionInfoForm(QWidget):
             widget.setVisible(False)
         
         return widget
-    
-    
-    def clear_form(self):
-        """Clear and reset all form elements, clear input and indicators. Only used by load_preset so could be hidden?"""
-        if self.scroll_content.layout() is not None:
-            # Clear the existing layouts
-            for i in reversed(range(self.scroll_content.layout().count())):
-                layout = self.scroll_content.layout().itemAt(i).layout()
-                if layout is not None:
-                    for j in reversed(range(layout.rowCount())):
-                        layout.removeRow(j)
-            # Remove the column layouts
-            while self.scroll_content.layout().count() > 0:
-                item = self.scroll_content.layout().takeAt(0)
-                if item.layout():
-                    item.layout().setParent(None)
-        self.inputs.clear()
-        self.indicators.clear()
         
 
     def update_indicator(self, field_name, is_valid):
@@ -273,8 +271,6 @@ class SessionInfoForm(QWidget):
 
         
     
-
-
 
 
 class FileInputForm(QWidget):
@@ -446,8 +442,16 @@ class FileInputForm(QWidget):
             self.check_form_completion()
     
         
-    def clear_files(self):
-        """Clear all elements in form"""
+    def reset_file_form(self):
+        """Clear all elements and data in file info form form"""
+        
+        # Clear notes and photos data
+        self.data_model.notes_file = None  # Reset notes file
+        self.notes_label.setText("No file selected")  # Reset label for notes
+
+        self.data_model.net_placement_photos = []  # Reset photos data
+        self.photos_label.setText("No photos selected")  # Reset label for photos
+        
         # Remove all widgets and dividers from the scroll layout
         while self.scroll_layout.count():
             item = self.scroll_layout.takeAt(0)
@@ -483,10 +487,6 @@ class FileInputForm(QWidget):
             }
             self.data_model.eeg_file_info.append(file_info)
                     
-
-
-
-
 
 
 
@@ -587,7 +587,7 @@ class MainWindow(QMainWindow):
 
         # Reset form
         reset_action = QAction("Reset Form", self)
-        reset_action.triggered.connect(self.reset_form)
+        reset_action.triggered.connect(self.reset_app)
         file_menu.addAction(reset_action)
 
 
@@ -598,11 +598,11 @@ class MainWindow(QMainWindow):
             self.data_model.file_output_folder = folder
 
 
-    def reset_form(self):
+    def reset_app(self):
         """Reset all fields and data model"""
         # Reset the session info tab and file tab
-        self.session_info_tab.reset_form()
-        self.file_upload_tab.clear_files()
+        self.session_info_tab.reset_session_form()
+        self.file_upload_tab.reset_file_form()
 
         # Disable the second tab
         self.tab_widget.setTabEnabled(1, False)
@@ -622,7 +622,7 @@ class MainWindow(QMainWindow):
             # Update data model with session information
             self.session_info_tab.update_session_info()
             # Swap to second tab            
-            self.file_upload_tab.clear_files()
+            self.file_upload_tab.reset_file_form()
             self.tab_widget.setTabEnabled(1, True)
             self.tab_widget.setCurrentIndex(1)
             # Disable first tab (have to reset whole session)
@@ -688,7 +688,7 @@ class MainWindow(QMainWindow):
 
 
         # reset for next file
-        self.reset_form()
+        self.reset_app()
 
   
 class ProgressDialog(QDialog):
@@ -736,8 +736,8 @@ class DataModel:
         "other": "Other"
     }
 
-    # Onedrive
-    DEID_LOG_FILEPATH = os.path.join(os.path.expanduser("~"), "Onedrive - cchmc/deid_logs_testing/DeidentifyPatientNum_NEW.xlsx")
+    # File path for deidentification spreadsheet
+    DEID_LOG_FILEPATH = os.path.join(os.path.expanduser("~"), "Onedrive - cchmc/Datashare/EEG_DEIDENTIFICATION_LOG/DeidentifyPatientNum_NEW.xlsx")
     
     def __init__(self):
 
@@ -746,9 +746,7 @@ class DataModel:
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/WORKING_DIRECTORY/'
-        #self.file_output_folder = 'C:/Users/liu7tv/Desktop/upload_test_files/output'
 
-        
         # Error out if file paths aren't available 
         if not os.path.exists(self.DEID_LOG_FILEPATH):
             QMessageBox.critical(None, "ERROR", f"DeID log file path does not exist: {self.DEID_LOG_FILEPATH}")
@@ -757,8 +755,8 @@ class DataModel:
             QMessageBox.critical(None, "ERROR", f"Configuration file path does not exist: {self.config_file_path}")
             sys.exit(1)         
         elif not os.path.exists(self.file_output_folder):
-            QMessageBox.warning(None, "WARNING", f"Output folder does not exist: {self.file_output_folder} \nSelect a new file output folder.")
-        
+            QMessageBox.critical(None, "WARNING", f"Output folder does not exist: {self.file_output_folder} \nCheck that hard drive is connected.")
+            sys.exit(1)
         
         # Load configuration file
         with open(self.config_file_path, 'r') as f:
@@ -814,7 +812,8 @@ class DataModel:
             raise FileNotFoundError(f"Deid log {file_path} does not exist!")        
 
         # load deid log into data model 
-        self.deid_log = pd.read_excel(file_path, engine='openpyxl')
+        with open(file_path, 'rb') as file:
+            self.deid_log = pd.read_excel(file, engine='openpyxl')
         
         # Filter out rows where first column is NaN (no deid available)
         first_column = self.deid_log.columns[0]
@@ -850,7 +849,7 @@ class DataModel:
             'Visit Date': self.session_info['date'],
             'Initials': self.session_info['subject_initials'],
             'Location': self.session_info['location'],
-            'Net Serial Number': self.session_info['net_serial_number'],
+            'Net Serial Number': int(self.session_info['net_serial_number']),
             'Notes': self.session_info['other_notes']
         }
         for key, value in cur_session_data.items():
@@ -858,6 +857,7 @@ class DataModel:
             
             
         # Add paradigms
+        file_names_list = []
         for eeg_file_dict in self.eeg_file_info:
             cur_paradigm = eeg_file_dict['paradigm']
             column_name = self.PARADIGM_TO_DEID_COLUMN_NAME.get(cur_paradigm, None)
@@ -866,28 +866,47 @@ class DataModel:
                     df.at[empty_row_index, column_name] = 1
                 else:
                     df.at[empty_row_index, column_name] += 1  
+            if 'raw_file' in eeg_file_dict:
+                file_names_list.append(os.path.basename(eeg_file_dict['raw_file']))
+                
+        
+        # Join collected file names into a semicolon-separated string
+        df.at[empty_row_index, 'original_file_names'] = ';'.join(file_names_list)
                         
         # Update work book (only at specified row)
         wb = load_workbook(self.DEID_LOG_FILEPATH)
         sheet = wb.active
+        
+        sheet.protection.disable()
+        
         for col_idx, col_name in enumerate(df.columns, start=1):
-            cell = sheet.cell(row=empty_row_index + 2, column=col_idx, value=df.at[empty_row_index, col_name])
+            if col_idx == 1:
+                continue
+            cell = sheet.cell(row=empty_row_index + 2, column=col_idx) # get cell
+            cell.value = df.at[empty_row_index, col_name] # set cell value
             if col_name == 'Visit Date':
                 cell.number_format = "MM/DD/YYYY"
+                
+            # Ensure cells are unlocked 
+            cell.protection = Protection(locked=False)
+
+        sheet.protection.enable()
 
         # Save the workbook with the updated row
         wb.save(self.DEID_LOG_FILEPATH)
 
 
     def back_up_deid_log(self):
-        """back up current version of deid log (will overwrite files in current day)"""
-        backup_folder = os.path.join(os.path.dirname(self.DEID_LOG_FILEPATH), 'backup')
+        """back up current version of deid log (backs once per day before edits)"""
+        backup_folder = os.path.join(os.path.dirname(self.DEID_LOG_FILEPATH), 'deid_log_backups')
         if not os.path.exists(backup_folder):
             os.makedirs(backup_folder)        
         name, extension = os.path.splitext(os.path.basename(self.DEID_LOG_FILEPATH))
         date_str = datetime.now().strftime("%m-%d-%Y")
         new_file_name = f"{name}_{date_str}{extension}"
         backup_filepath = os.path.join(backup_folder, new_file_name)
+        if os.path.exists(backup_filepath):
+            return  
         shutil.copy2(self.DEID_LOG_FILEPATH, backup_filepath)
 
         
@@ -929,6 +948,7 @@ class DataModel:
     def check_file_exists(self, path):
         """Check if a file exists and raise an error if it does."""
         if os.path.exists(path):
+            QMessageBox.critical(None, F"File '{path}' already exists (this should never happen you can panic)")
             raise FileExistsError(f"File '{path}' already exists (this should never happen you can panic)")
 
 
@@ -945,8 +965,6 @@ class DataModel:
             if not src_path_raw or not src_path_mff:
                 continue
             
-            raw_file_ext = os.path.splitext(src_path_raw)[1]
-            mff_file_ext = os.path.splitext(src_path_mff)[1]
             paradigm = cur_file_info['paradigm']
 
             # Update counter for paradigm
@@ -954,11 +972,11 @@ class DataModel:
             paradigm_counter[paradigm] = counter if counter > 1 else ""
 
             base_name = self.generate_base_name(paradigm, paradigm_counter[paradigm])
-            final_directory_path = self.create_directory(destination_folder, "back_up", dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
+            final_directory_path = self.create_directory(destination_folder, 'back_up', dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
             
             # Create destination paths
-            dst_path_raw = os.path.join(final_directory_path, base_name + raw_file_ext)
-            dst_path_mff = os.path.join(final_directory_path, base_name + mff_file_ext)
+            dst_path_raw = os.path.join(final_directory_path, base_name + '.raw')
+            dst_path_mff = os.path.join(final_directory_path, base_name + '.mff')
 
             # Check if files already exist
             self.check_file_exists(dst_path_raw)
@@ -972,16 +990,18 @@ class DataModel:
         new_notes_file_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}" + os.path.splitext(self.notes_file)[1]
         shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))
 
+
     def save_deid_files(self):
         destination_folder = self.file_output_folder
         paradigm_counter = {}
 
         for cur_file_info in self.eeg_file_info:
             src_path = cur_file_info['raw_file']
+            
+            # Skip files if paths are missing
             if not src_path:
                 continue
 
-            raw_file_ext = os.path.splitext(src_path)[1]
             paradigm = cur_file_info['paradigm']
 
             # Update counter for paradigm
@@ -995,13 +1015,14 @@ class DataModel:
                 base_name += "_speakers"
 
             final_directory_path = self.create_directory(destination_folder, "deidentified")
-            dst_path_deid = os.path.join(final_directory_path, base_name + raw_file_ext)
+            dst_path_deid = os.path.join(final_directory_path, base_name + ".raw")
 
             shutil.copy2(src_path, dst_path_deid)
 
         # Save notes file
         new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
         shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))
+
 
     def save_net_placement_photos(self):
         if not self.net_placement_photos:
@@ -1024,13 +1045,11 @@ class DataModel:
         except Exception as e:
             QMessageBox.critical(None, "ERROR", f"Error zipping net placement photos:\n{str(e)}")
             sys.exit(1)
-            
-                
-                
 
-                
-                
-                
+
+
+
+
                 
     ####################################################
     ############ TEMPORARILY NOT USED ##################
@@ -1072,22 +1091,6 @@ class DataModel:
             with open(dst_path_sidecar, "w") as outfile:
                 json.dump(final_sidecar_dict, outfile, indent=4)
         
-      
-    def safe_file_copy(src_path, dst_folder, file_name):
-        """Create destination dir if it doesn't exist --> save file, error out if file already exists"""
-        
-        # Create directory path if it doesn't exist
-        os.makedirs(dst_folder, exist_ok=True)
-        
-        # Create the full destination path
-        dst_path = os.path.join(dst_folder, file_name)
-        
-        # Check if the file already exists
-        if os.path.exists(dst_path):
-            raise FileExistsError(f"File '{dst_path}' already exists")
-        
-        # Copy the file
-        shutil.copy2(src_path, dst_path)
     
     
     
