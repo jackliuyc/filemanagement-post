@@ -5,6 +5,7 @@
 *.pdf
 *.md
 *.html
+*.bat
 *.css
 *.js
 *.ts

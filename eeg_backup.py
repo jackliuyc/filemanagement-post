@@ -736,7 +736,8 @@ class DataModel:
         "other": "Other"
     }
 
-    DEID_LOG_FILEPATH = 'C:/Users/liu7tv/OneDrive - cchmc/deid_logs_testing/DeidentifyPatientNum_NEW.xlsx'  
+    # Onedrive
+    DEID_LOG_FILEPATH = os.path.join(os.path.expanduser("~"), "Onedrive - cchmc/deid_logs_testing/DeidentifyPatientNum_NEW.xlsx")
     
     def __init__(self):
 
