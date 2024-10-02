@@ -62,11 +62,11 @@
             "options": [
                 "",
                 "rest",
+                "resteyesclosed",
                 "chirp",
                 "chirplong",
                 "ssct",
                 "rleeg",
-                "resteyesclosed",
                 "resteyesopeneyesclosed",
                 "talk",
                 "listen",
@@ -342,12 +342,14 @@
             "options": [
                 "",
                 "rest",
+                "resteyesclosed",
                 "chirp",
                 "chirplong",
                 "ssct",
                 "slstructured",
                 "slrandom",
                 "bblong",
+                "resteyesopeneyesclosed",
                 "other"
             ],
             "validation": "^[A-Za-z]+$",
@@ -585,9 +587,9 @@
             "options": [
                 "",
                 "rest",
+                "resteyesclosed",
                 "chirp",
                 "ssct",
-                "resteyesclosed",
                 "resteyesopeneyesclosed",
                 "other"
             ],
