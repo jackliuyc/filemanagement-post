@@ -726,6 +726,7 @@ class DataModel:
     PARADIGM_TO_DEID_COLUMN_NAME = {
         "rest": "Resting", 
         "resteyesclosed" : "Resting",
+        "resteyesclosedeyesopen" : "Resting",
         "chirp": "Chirp", 
         "chirplong": "Chirp", 
         "ssct": "Steady State", 
@@ -764,7 +765,7 @@ class DataModel:
             QMessageBox.critical(None, "ERROR", f"Configuration file path does not exist: {self.config_file_path}")
             sys.exit(1)         
         elif not os.path.exists(self.file_output_folder):
-            QMessageBox.critical(None, "WARNING", f"Output folder does not exist: {self.file_output_folder} \nCheck that hard drive is connected.")
+            QMessageBox.critical(None, "ERROR", f"Output folder does not exist: {self.file_output_folder} \nCheck that hard drive is connected.")
             sys.exit(1)
         
         # Load configuration file
