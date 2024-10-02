@@ -120,7 +120,6 @@
             "label": "Cap Type",
             "type": "combo",
             "options": [
-                "",
                 "adult",
                 "infant"
             ],
@@ -133,7 +132,6 @@
             "label": "Audio Source",
             "type": "combo",
             "options": [
-                "",
                 "headphones",
                 "speakers"
             ],
@@ -246,7 +244,6 @@
             "label": "Cap Type",
             "type": "combo",
             "options": [
-                "",
                 "adult",
                 "infant"
             ],
@@ -259,7 +256,6 @@
             "label": "Audio Source",
             "type": "combo",
             "options": [
-                "",
                 "headphones",
                 "speakers"
             ],
@@ -400,7 +396,6 @@
             "label": "Cap Type",
             "type": "combo",
             "options": [
-                "",
                 "adult",
                 "infant"
             ],
@@ -413,7 +408,6 @@
             "label": "Audio Source",
             "type": "combo",
             "options": [
-                "",
                 "headphones",
                 "speakers"
             ],
@@ -524,7 +518,6 @@
             "label": "Cap Type",
             "type": "combo",
             "options": [
-                "",
                 "adult",
                 "infant"
             ],
@@ -537,7 +530,6 @@
             "label": "Audio Source",
             "type": "combo",
             "options": [
-                "",
                 "headphones",
                 "speakers"
             ],
@@ -645,7 +637,6 @@
             "label": "Cap Type",
             "type": "combo",
             "options": [
-                "",
                 "adult",
                 "infant"
             ],
@@ -658,7 +649,6 @@
             "label": "Audio Source",
             "type": "combo",
             "options": [
-                "",
                 "headphones",
                 "speakers"
             ],

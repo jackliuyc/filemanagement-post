@@ -11,7 +11,7 @@ from openpyxl.styles import Protection
 from zipfile import ZipFile
 
 
-from PyQt5.QtCore import pyqtSignal, QDate
+from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, 
     QLabel, QLineEdit, QComboBox, QPushButton, QDateEdit, QSpinBox, 
@@ -411,10 +411,13 @@ class FileInputForm(QWidget):
     def upload_notes_file(self):
         """Open file dialog for user to select a notes file"""
         options = QFileDialog.Options()
+        default_folder = "E:/"
+        if not os.path.exists(default_folder):
+            default_folder = ""
         filename, _ = QFileDialog.getOpenFileName(
             self,
             "Select a file",
-            "",
+            default_folder,
             "Text Files (*.txt;*.rtf);;All Files (*)",
             options=options
         )
@@ -695,7 +698,13 @@ class ProgressDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Progress")
+        
+        # disable main window when active
         self.setModal(True)
+
+        # disable close button (wait until all transfer is complete)
+        self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+
         self.layout = QVBoxLayout(self)
 
         self.warning_label = QLabel("FILES ARE BEING COPIED, DO NOT TOUCH ANYTHING\n\nUI MAY BECOME UNRESPONSIVE, THAT IS OKAY\n\n", self)
@@ -967,12 +976,11 @@ class DataModel:
             
             paradigm = cur_file_info['paradigm']
 
-            # Update counter for paradigm and always store it as an integer
-            paradigm_counter[paradigm] = paradigm_counter.get(paradigm, 0) + 1
-            counter_str = f"{paradigm_counter[paradigm]}" if paradigm_counter[paradigm] > 1 else ""
+            # Update counter for paradigm
+            counter = paradigm_counter.get(paradigm, 0) + 1
+            paradigm_counter[paradigm] = counter if counter > 1 else ""
 
-            # Only append the counter to the base name if it's greater than 1
-            base_name = self.generate_base_name(paradigm, counter_str)
+            base_name = self.generate_base_name(paradigm, paradigm_counter[paradigm])
             final_directory_path = self.create_directory(destination_folder, 'back_up', dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
             
             # Create destination paths
@@ -1006,10 +1014,10 @@ class DataModel:
             paradigm = cur_file_info['paradigm']
 
             # Update counter for paradigm
-            paradigm_counter[paradigm] = paradigm_counter.get(paradigm, 0) + 1
-            counter_str = f"{paradigm_counter[paradigm]}" if paradigm_counter[paradigm] > 1 else ""
+            counter = paradigm_counter.get(paradigm, 0) + 1
+            paradigm_counter[paradigm] = counter if counter > 1 else ""
 
-            base_name = f"{self.deid:04}_{paradigm}{counter_str}"
+            base_name = f"{self.deid:04}_{paradigm}{paradigm_counter[paradigm]}"
             if self.session_info.get('cap_type') == 'babycap':
                 base_name += "_babycap"
             if self.session_info.get('audio_source') == 'speakers' and paradigm != 'rest':
