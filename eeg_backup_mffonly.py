@@ -341,8 +341,8 @@ class FileInputForm(QWidget):
 
 
         # MFF file button
-        mff_button = QPushButton("Upload .MFF folder")
-        mff_label = QLabel("No folder selected")
+        mff_button = QPushButton("Upload .MFF file")
+        mff_label = QLabel("No file selected")
         mff_button.clicked.connect(lambda _, label=mff_label: self.upload_mff(label))
         form_layout.addRow(mff_button, mff_label)
 
@@ -371,9 +371,9 @@ class FileInputForm(QWidget):
     def upload_mff(self, mff_label):
         """File dialog for selecting MFF file"""
         options = QFileDialog.Options()
-        folder = QFileDialog.getExistingDirectory(self, "Select .MFF folder", "", options=options)
-        if folder:
-            mff_label.setText(folder)
+        file = QFileDialog.getExistingDirectory(self, "Select .MFF file", "", options=options)
+        if file:
+            mff_label.setText(file)
         self.check_form_completion()  # Check validity and update buttons 
 
 
@@ -387,7 +387,7 @@ class FileInputForm(QWidget):
         # Check if all sections are complete (selected paradigm + loaded mff)
         all_sections_complete = all(
             section["paradigm_combo"].currentIndex() != 0 and
-            section["mff_label"].text() != "No folder selected"
+            section["mff_label"].text() != "No file selected"
             for section in self.sections
         )
         self.add_button.setEnabled(all_sections_complete)
