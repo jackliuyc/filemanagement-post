@@ -904,6 +904,16 @@ class DataModel:
         wb.save(self.DEID_LOG_FILEPATH)
 
 
+    def check_row_already_exists(self, df, cur_session_data):
+        """Check if a row with the same session data already exists in the DataFrame"""
+        
+        columns_2_check = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
+        for _, cur_row in df.iterrows():
+            if all(cur_row[col] == cur_session_data[col] for col in columns_2_check):
+                QMessageBox.critical(None, F"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
+                raise Exception("Session already exists in the deid log. Cannot proceed with updating log or copying files.")
+            
+
     def back_up_deid_log(self):
         """back up current version of deid log (backs once per day before edits)"""
         backup_folder = os.path.join(os.path.dirname(self.DEID_LOG_FILEPATH), 'deid_log_backups')
@@ -918,20 +928,6 @@ class DataModel:
         shutil.copy2(self.DEID_LOG_FILEPATH, backup_filepath)
 
 
-    def check_row_already_exists(self, df, new_row_data):
-        """Check if the newly added session row already exists in the dataframe"""
-
-        key_columns = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
-        matches = pd.Series([True] * len(df))  # Start with all rows as True
-        
-        for column in key_columns:
-            if column in new_row_data:
-                matches = matches & (df[column] == new_row_data[column])
-
-        if matches.any():
-            QMessageBox.critical(None, F"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
-            raise Exception("Session already exists in the deid log. Cannot proceed with updating log or copying files.")
-            
         
     def get_empty_row_index_from_deid_log(self):
         """Find the index of the first completely empty row (ignoring the first column)"""
