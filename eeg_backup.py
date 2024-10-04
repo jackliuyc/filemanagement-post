@@ -910,7 +910,7 @@ class DataModel:
         columns_2_check = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
         for _, cur_row in df.iterrows():
             if all(cur_row[col] == cur_session_data[col] for col in columns_2_check):
-                QMessageBox.critical(None, F"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
+                QMessageBox.critical(None, "ERROR", f"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
                 raise Exception("Session already exists in the deid log. Cannot proceed with updating log or copying files.")
             
 
@@ -967,7 +967,7 @@ class DataModel:
     def check_file_exists(self, path):
         """Check if a file exists and raise an error if it does."""
         if os.path.exists(path):
-            QMessageBox.critical(None, F"File '{path}' already exists (this should never happen you can panic)")
+            QMessageBox.critical(None, "ERROR", f"File '{path}' already exists (this should never happen you can panic)")
             raise FileExistsError(f"File '{path}' already exists (this should never happen you can panic)")
 
 
