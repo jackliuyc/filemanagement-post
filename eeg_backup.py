@@ -749,8 +749,7 @@ class DataModel:
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/WORKING_DIRECTORY/'
-        self.file_output_folder = 'C:/Users/liu7tv/Desktop/'
-
+        
         # Error out if file paths aren't available 
         if not os.path.exists(self.DEID_LOG_FILEPATH):
             QMessageBox.critical(None, "ERROR", f"DeID log file path does not exist: {self.DEID_LOG_FILEPATH}")
