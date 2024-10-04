@@ -339,10 +339,9 @@ class FileInputForm(QWidget):
         paradigm_combo.currentIndexChanged.connect(self.check_form_completion)
         form_layout.addRow(QLabel(f"Paradigm {len(self.sections) + 1}:"), paradigm_combo)
 
-
         # MFF file button
-        mff_button = QPushButton("Upload .MFF file")
-        mff_label = QLabel("No file selected")
+        mff_button = QPushButton("Upload .MFF folder")
+        mff_label = QLabel("No folder selected")
         mff_button.clicked.connect(lambda _, label=mff_label: self.upload_mff(label))
         form_layout.addRow(mff_button, mff_label)
 
@@ -366,14 +365,12 @@ class FileInputForm(QWidget):
         self.check_form_completion()
 
 
-
-
     def upload_mff(self, mff_label):
         """File dialog for selecting MFF file"""
         options = QFileDialog.Options()
-        file = QFileDialog.getExistingDirectory(self, "Select .MFF file", "", options=options)
-        if file:
-            mff_label.setText(file)
+        folder = QFileDialog.getExistingDirectory(self, "Select .MFF folder", "", options=options)
+        if folder:
+            mff_label.setText(folder)
         self.check_form_completion()  # Check validity and update buttons 
 
 
@@ -387,7 +384,7 @@ class FileInputForm(QWidget):
         # Check if all sections are complete (selected paradigm + loaded mff)
         all_sections_complete = all(
             section["paradigm_combo"].currentIndex() != 0 and
-            section["mff_label"].text() != "No file selected"
+            section["mff_label"].text() != "No folder selected"
             for section in self.sections
         )
         self.add_button.setEnabled(all_sections_complete)
@@ -470,7 +467,7 @@ class FileInputForm(QWidget):
             mff_file = section['mff_label'].text()
             file_info = {
                 'paradigm': paradigm,
-                'mff_file': mff_file if mff_file != "No mff selected" else None
+                'mff_file': mff_file if mff_file != "No folder selected" else None
             }
             self.data_model.eeg_file_info.append(file_info)
                     
@@ -571,7 +568,7 @@ class MainWindow(QMainWindow):
         reset_action = QAction("Reset Form", self)
         reset_action.triggered.connect(self.reset_app)
         file_menu.addAction(reset_action)
-
+        
         # Quit application
         quit_action = QAction("Quit", self)
         quit_action.triggered.connect(QApplication.quit)
@@ -617,7 +614,7 @@ class MainWindow(QMainWindow):
         # Check all file fields filled out
         all_valid = all(
             section["paradigm_combo"].currentIndex() != 0 and
-            section["mff_label"].text() != "No mff selected"
+            section["mff_label"].text() != "No folder selected"
             for section in self.file_upload_tab.sections
         ) and self.file_upload_tab.notes_label != "No file selected"
         
@@ -732,7 +729,7 @@ class DataModel:
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/WORKING_DIRECTORY/'
-
+        
         # Error out if file paths aren't available 
         if not os.path.exists(self.DEID_LOG_FILEPATH):
             QMessageBox.critical(None, "ERROR", f"DeID log file path does not exist: {self.DEID_LOG_FILEPATH}")
@@ -840,8 +837,8 @@ class DataModel:
         }
         for key, value in cur_session_data.items():
             df.at[empty_row_index, key] = value   
+        
             
-
         # Check if row already exists 
         self.check_row_already_exists(df, cur_session_data)
 
@@ -885,21 +882,16 @@ class DataModel:
         # Save the workbook with the updated row
         wb.save(self.DEID_LOG_FILEPATH)
 
-    def check_row_already_exists(self, df, new_row_data):
-        """Check if the newly added session row already exists in the dataframe"""
 
-        key_columns = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
-        matches = pd.Series([True] * len(df))  # Start with all rows as True
+    def check_row_already_exists(self, df, cur_session_data):
+        """Check if a row with the same session data already exists in the DataFrame"""
         
-        for column in key_columns:
-            if column in new_row_data:
-                matches = matches & (df[column] == new_row_data[column])
-
-        if matches.any():
-            QMessageBox.critical(None, F"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
-            raise Exception("Session already exists in the deid log. Cannot proceed with updating log or copying files.")
+        columns_2_check = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
+        for _, cur_row in df.iterrows():
+            if all(cur_row[col] == cur_session_data[col] for col in columns_2_check):
+                QMessageBox.critical(None, "ERROR", f"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
+                raise Exception("Session already exists in the deid log. Cannot proceed with updating log or copying files.")
             
-    
 
     def back_up_deid_log(self):
         """back up current version of deid log (backs once per day before edits)"""
@@ -913,6 +905,7 @@ class DataModel:
         if os.path.exists(backup_filepath):
             return  
         shutil.copy2(self.DEID_LOG_FILEPATH, backup_filepath)
+
 
         
     def get_empty_row_index_from_deid_log(self):
@@ -953,7 +946,7 @@ class DataModel:
     def check_file_exists(self, path):
         """Check if a file exists and raise an error if it does."""
         if os.path.exists(path):
-            QMessageBox.critical(None, F"File '{path}' already exists (this should never happen you can panic)")
+            QMessageBox.critical(None, "ERROR", f"File '{path}' already exists (this should never happen you can panic)")
             raise FileExistsError(f"File '{path}' already exists (this should never happen you can panic)")
 
 
@@ -1016,21 +1009,9 @@ class DataModel:
                 base_name += "_speakers"
 
             final_directory_path = self.create_directory(destination_folder, "deidentified")
-            dst_path = os.path.join(final_directory_path, base_name + ".mff")
+            dst_path_deid = os.path.join(final_directory_path, base_name + ".mff")
 
-            shutil.copytree(src_path, dst_path)
-            
-            
-            
-            # deidentify 
-            try:
-                self.deidentify_mff(
-                    mff_file_path = src_path, 
-                    original_filename = os.path.splitext(os.path.basename(src_path))[0], 
-                    new_filename = base_name
-                )
-            except Exception as error:
-                print("PANIC")
+            shutil.copytree(src_path, dst_path_deid)
 
         # Save notes file
         new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
@@ -1061,51 +1042,6 @@ class DataModel:
 
 
 
-
-
-
-    def deidentify_mff(mff_file_path, original_filename, new_filename):
-        
-        # List of files to deidentify within the .MFF directory
-        files_to_deidentify = ['hostTimes.xml', 'movieSyncs1.xml', 'subject.xml', 'techNote.rtf']
-
-        # Loop through each file and apply deidentification
-        for file_name in files_to_deidentify:
-            file_path = os.path.join(mff_file_path, file_name)
-            
-            # Check if file exists
-            if not os.path.exists(file_path):
-                print(f"File not found: {file_path}")
-                return
-                    
-            # Read the file as text
-            with open(file_path, 'r', encoding='utf-8') as file:
-                file_content = file.read()
-
-            # Replace old file name with the deidentified file name
-            file_content = file_content.replace(original_filename, new_filename)
-
-            # Replace old ID with deidentified ID
-            original_id = original_filename.rsplit('_', 2)[0]
-            file_content = file_content.replace(original_id, new_filename)
-
-            # Write the deidentified content back to the file
-            with open(file_path, 'w', encoding='utf-8') as file:
-                file.write(file_content)
-            
-
-        # Loop through files
-        for cur_file in os.listdir(mff_file_path):
-            
-            # Remove participant video .mov files
-            if cur_file.endswith('.mov'):
-                movie_file_path = os.path.join(mff_file_path, cur_file)
-                os.remove(movie_file_path)
-
-            # Rename log file
-            if original_filename in cur_file and cur_file.endswith('.txt'):
-                os.rename(os.path.join(mff_file_path, cur_file),
-                    os.path.join(mff_file_path, cur_file.replace(original_filename, new_filename)))
 
 
 
