@@ -567,22 +567,15 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("File")
 
-        # Select output folder
-        select_output_action = QAction("Select Output Folder", self)
-        select_output_action.triggered.connect(self.select_output_folder)
-        file_menu.addAction(select_output_action)
-
         # Reset form
         reset_action = QAction("Reset Form", self)
         reset_action.triggered.connect(self.reset_app)
         file_menu.addAction(reset_action)
 
-
-    def select_output_folder(self):
-        """Select new output folder for files"""
-        folder = QFileDialog.getExistingDirectory(self, "Select File Output Folder")
-        if folder:
-            self.data_model.file_output_folder = folder
+        # Quit application
+        quit_action = QAction("Quit", self)
+        quit_action.triggered.connect(QApplication.quit)
+        file_menu.addAction(quit_action)
 
 
     def reset_app(self):
@@ -848,6 +841,10 @@ class DataModel:
         for key, value in cur_session_data.items():
             df.at[empty_row_index, key] = value   
             
+
+        # Check if row already exists 
+        self.check_row_already_exists(df, cur_session_data)
+
             
         # Add paradigms
         file_names_list = []
@@ -888,6 +885,21 @@ class DataModel:
         # Save the workbook with the updated row
         wb.save(self.DEID_LOG_FILEPATH)
 
+    def check_row_already_exists(self, df, new_row_data):
+        """Check if the newly added session row already exists in the dataframe"""
+
+        key_columns = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
+        matches = pd.Series([True] * len(df))  # Start with all rows as True
+        
+        for column in key_columns:
+            if column in new_row_data:
+                matches = matches & (df[column] == new_row_data[column])
+
+        if matches.any():
+            QMessageBox.critical(None, F"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
+            raise Exception("Session already exists in the deid log. Cannot proceed with updating log or copying files.")
+            
+    
 
     def back_up_deid_log(self):
         """back up current version of deid log (backs once per day before edits)"""
