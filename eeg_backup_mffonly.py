@@ -1011,6 +1011,16 @@ class DataModel:
             final_directory_path = self.create_directory(destination_folder, "deidentified")
             dst_path_deid = os.path.join(final_directory_path, base_name + ".mff")
 
+            # deidentify 
+            try:
+                self.deidentify_mff(
+                    mff_file_path = src_path, 
+                    original_filename = os.path.splitext(os.path.basename(src_path))[0], 
+                    new_filename = base_name
+                )
+            except Exception as error:
+                print("PANIC")
+                
             shutil.copytree(src_path, dst_path_deid)
 
         # Save notes file
@@ -1039,6 +1049,44 @@ class DataModel:
         except Exception as e:
             QMessageBox.critical(None, "ERROR", f"Error zipping net placement photos:\n{str(e)}")
             sys.exit(1)
+            
+            
+    def deidentify_mff(mff_file_path, original_filename, new_filename):
+        
+        # List of files to deidentify within the .MFF directory
+        files_to_deidentify = ['hostTimes.xml', 'movieSyncs1.xml', 'subject.xml', 'techNote.rtf']
+        # Loop through each file and apply deidentification
+        for file_name in files_to_deidentify:
+            file_path = os.path.join(mff_file_path, file_name)
+            
+            # Check if file exists
+            if not os.path.exists(file_path):
+                print(f"File not found: {file_path}")
+                return
+                    
+            # Read the file as text
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+            # Replace old file name with the deidentified file name
+            file_content = file_content.replace(original_filename, new_filename)
+            # Replace old ID with deidentified ID
+            original_id = original_filename.rsplit('_', 2)[0]
+            file_content = file_content.replace(original_id, new_filename)
+            # Write the deidentified content back to the file
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(file_content)
+            
+        # Loop through files
+        for cur_file in os.listdir(mff_file_path):
+            
+            # Remove participant video .mov files
+            if cur_file.endswith('.mov'):
+                movie_file_path = os.path.join(mff_file_path, cur_file)
+                os.remove(movie_file_path)
+            # Rename log file
+            if original_filename in cur_file and cur_file.endswith('.txt'):
+                os.rename(os.path.join(mff_file_path, cur_file),
+                    os.path.join(mff_file_path, cur_file.replace(original_filename, new_filename)))
 
 
 
