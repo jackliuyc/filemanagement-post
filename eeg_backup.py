@@ -752,7 +752,7 @@ class DataModel:
     def __init__(self):
 
         # Configuration dictionary containing presets
-        self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filename_config.json') 
+        self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json') 
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/WORKING_DIRECTORY/'
