@@ -367,15 +367,6 @@ class FileInputForm(QWidget):
         self.check_form_completion()
 
 
-    def upload_mff(self, mff_label):
-        """File dialog for selecting MFF file"""
-        options = QFileDialog.Options()
-        folder = QFileDialog.getExistingDirectory(self, "Select .MFF folder", "", options=options)
-        if folder:
-            mff_label.setText(folder)
-        self.check_form_completion()  # Check validity and update buttons 
-
-
     def check_form_completion(self):
         """Enable or disable buttons depending on if file selection is complete for each section."""
         # Check if notes present
@@ -392,11 +383,27 @@ class FileInputForm(QWidget):
         self.add_button.setEnabled(all_sections_complete)
         self.confirm_file_button.setEnabled(all_sections_complete)
         
+    def upload_mff(self, mff_label):
+        """File dialog for selecting MFF file"""
+        options = QFileDialog.Options()
+        default_folder = self.data_model.filepath_dict['usb_input_dir']
+        if not os.path.exists(default_folder):
+            default_folder = ""
+        folder = QFileDialog.getExistingDirectory(
+            self, 
+            "Select .MFF folder", 
+            default_folder, 
+            options=options
+        )
+        if folder:
+            mff_label.setText(folder)
+        self.check_form_completion()  # Check validity and update buttons
+        
         
     def upload_notes_file(self):
         """Open file dialog for user to select a notes file"""
         options = QFileDialog.Options()
-        default_folder = "E:/"
+        default_folder = self.data_model.filepath_dict['usb_input_dir']
         if not os.path.exists(default_folder):
             default_folder = ""
         filename, _ = QFileDialog.getOpenFileName(
@@ -932,14 +939,6 @@ class DataModel:
         return self.deid_log.at[row, self.deid_log.columns[0]]
 
 
-
-    def create_directory(self, *path_parts):
-        """Create directories if they do not exist."""
-        final_directory_path = os.path.join(*path_parts)
-        os.makedirs(final_directory_path, exist_ok=True)
-        return final_directory_path
-
-
     def generate_base_name(self, paradigm, counter=""):
         """Generate base file name with all necessary data."""
         dat = self.session_info
@@ -957,8 +956,8 @@ class DataModel:
     def check_file_exists(self, path):
         """Check if a file exists and raise an error if it does."""
         if os.path.exists(path):
-            QMessageBox.critical(None, "ERROR", f"File '{path}' already exists (this should never happen you can panic)")
-            raise FileExistsError(f"File '{path}' already exists (this should never happen you can panic)")
+            QMessageBox.critical(None, "ERROR", f"File '{path}' already exists. Check that you entered the session info correctly!")
+            raise FileExistsError(f"File '{path}' already exists.")
 
 
     def copy_and_rename_files(self):
@@ -980,7 +979,9 @@ class DataModel:
             paradigm_counter[paradigm] = counter if counter > 1 else ""
 
             base_name = self.generate_base_name(paradigm, paradigm_counter[paradigm])
-            final_directory_path = self.create_directory(destination_folder, 'back_up', dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
+            
+            final_directory_path = os.path.join(destination_folder, dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
+            os.makedirs(final_directory_path, exist_ok=True)
             
             # Create destination paths
             dst_path = os.path.join(final_directory_path, base_name + '.mff')
@@ -1019,24 +1020,29 @@ class DataModel:
             if self.session_info.get('audio_source') == 'speakers' and paradigm != 'rest':
                 base_name += "_speakers"
 
-            final_directory_path = self.create_directory(destination_folder, "deidentified")
-            dst_path_deid = os.path.join(final_directory_path, base_name + ".mff")
+            dst_path_deid = os.path.join(destination_folder, base_name + ".mff")
 
-            # deidentify 
+            # check that you're not overwriting any files            
+            self.check_file_exists(dst_path_deid)
+
+            # copy deidentified files
+            shutil.copytree(src_path, dst_path_deid)
+            
+            
+            # deidentify mff files (remove video and original file name) 
+            
             # try:
             #     self.deidentify_mff(
-            #         mff_file_path = src_path, 
+            #         mff_file_path = dst_path_deid, 
             #         original_filename = os.path.splitext(os.path.basename(src_path))[0], 
             #         new_filename = base_name
             #     )
             # except Exception as error:
             #     print("PANIC")
-                
-            shutil.copytree(src_path, dst_path_deid)
 
         # Save notes file
         new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
-        shutil.copy2(self.notes_file, os.path.join(final_directory_path, new_notes_file_name))
+        shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))
 
 
     def save_net_placement_photos(self):
@@ -1047,9 +1053,8 @@ class DataModel:
         dat = self.session_info
         paradigm = "netplacementphotos"
 
-        final_directory_path = self.create_directory(destination_folder, "back_up", dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
         base_name = self.generate_base_name(paradigm)
-        dst_path_zip = os.path.join(final_directory_path, base_name + ".zip")
+        dst_path_zip = os.path.join(destination_folder, base_name + ".zip")
 
         self.check_file_exists(dst_path_zip)
 
