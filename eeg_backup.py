@@ -4,12 +4,14 @@ import re
 import os
 import shutil
 import pandas as pd
+
 from datetime import datetime
 
 from openpyxl import load_workbook
 from openpyxl.styles import Protection
 from zipfile import ZipFile
 
+from socket import create_connection
 
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (
@@ -40,7 +42,7 @@ class SessionInfoForm(QWidget):
 
         # Preset combo box
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems(self.data_model.CONFIG_DICT.keys())
+        self.preset_combo.addItems(self.data_model.config_dict.keys())
         self.preset_combo.currentTextChanged.connect(self.load_preset)
         self.layout.addWidget(QLabel("Select Study Preset:"))
         self.layout.addWidget(self.preset_combo)
@@ -110,7 +112,7 @@ class SessionInfoForm(QWidget):
         self.indicators.clear()
         
         # Load preset from data model
-        preset = self.data_model.CONFIG_DICT[preset]
+        preset = self.data_model.config_dict[preset]
 
         # Create a new widget for the scroll area content
         self.scroll_content = QWidget()
@@ -237,7 +239,7 @@ class SessionInfoForm(QWidget):
 
     def validate_all_fields(self):
         """Validate all fields and update the overall UI state based on validation results."""
-        preset = self.data_model.CONFIG_DICT[self.get_current_study()]
+        preset = self.data_model.config_dict[self.get_current_study()]
         all_valid = True
 
         # Loop over all fields in the preset
@@ -329,7 +331,7 @@ class FileInputForm(QWidget):
 
 
     def add_section(self):
-        """Add section for EEG paradigm. Contains paradigm combobox and buttons for MFF and RAW file selection"""
+        """Add section for EEG paradigm. Contains paradigm combobox and buttons for MFF file selection"""
         # Layout 
         form_layout = QFormLayout()
 
@@ -338,12 +340,6 @@ class FileInputForm(QWidget):
         paradigm_combo.addItems(self.data_model.get_list_of_current_paradigms())
         paradigm_combo.currentIndexChanged.connect(self.check_form_completion)
         form_layout.addRow(QLabel(f"Paradigm {len(self.sections) + 1}:"), paradigm_combo)
-
-        # RAW file button
-        raw_button = QPushButton("Upload .RAW file")
-        raw_label = QLabel("No file selected")
-        raw_button.clicked.connect(lambda _, label=raw_label: self.upload_raw(label))
-        form_layout.addRow(raw_button, raw_label)
 
         # MFF file button
         mff_button = QPushButton("Upload .MFF folder")
@@ -356,7 +352,6 @@ class FileInputForm(QWidget):
         section_widget.setLayout(form_layout)
         self.sections.append({
             "paradigm_combo": paradigm_combo,
-            "raw_label": raw_label,
             "mff_label": mff_label,
             "widget": section_widget
         })
@@ -370,15 +365,6 @@ class FileInputForm(QWidget):
 
         # Make sure buttons are updated 
         self.check_form_completion()
-
-
-    def upload_raw(self, raw_label):
-        """File dialog for selecting RAW file"""
-        options = QFileDialog.Options()
-        filename, _ = QFileDialog.getOpenFileName(self, "Select .RAW file", "", "RAW Files (*.raw);;All Files (*)", options=options)
-        if filename:
-            raw_label.setText(filename)
-        self.check_form_completion()  # Check validity and update buttons 
 
 
     def upload_mff(self, mff_label):
@@ -397,10 +383,9 @@ class FileInputForm(QWidget):
             self.add_button.setEnabled(False)
             self.confirm_file_button.setEnabled(False)
             return
-        # Check if all sections are complete (selected paradigm + loaded raw + loaded mff)
+        # Check if all sections are complete (selected paradigm + loaded mff)
         all_sections_complete = all(
             section["paradigm_combo"].currentIndex() != 0 and
-            section["raw_label"].text() != "No file selected" and
             section["mff_label"].text() != "No folder selected"
             for section in self.sections
         )
@@ -481,12 +466,10 @@ class FileInputForm(QWidget):
             
             # Dictionary of file info
             paradigm = section['paradigm_combo'].currentText()
-            raw_file = section['raw_label'].text()
-            mff_folder = section['mff_label'].text()
+            mff_file = section['mff_label'].text()
             file_info = {
                 'paradigm': paradigm,
-                'raw_file': raw_file if raw_file != "No file selected" else None,
-                'mff_folder': mff_folder if mff_folder != "No folder selected" else None
+                'mff_file': mff_file if mff_file != "No folder selected" else None
             }
             self.data_model.eeg_file_info.append(file_info)
                     
@@ -633,7 +616,6 @@ class MainWindow(QMainWindow):
         # Check all file fields filled out
         all_valid = all(
             section["paradigm_combo"].currentIndex() != 0 and
-            section["raw_label"].text() != "No file selected" and
             section["mff_label"].text() != "No folder selected"
             for section in self.file_upload_tab.sections
         ) and self.file_upload_tab.notes_label != "No file selected"
@@ -743,9 +725,14 @@ class DataModel:
     DEID_LOG_FILEPATH = os.path.join(os.path.expanduser("~"), "Onedrive - cchmc/Datashare/EEG_DEIDENTIFICATION_LOG/DeidentifyPatientNum_NEW.xlsx")
     
     def __init__(self):
+        
+
+        
+    
+        
 
         # Configuration dictionary containing presets
-        self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json') 
+        self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui_config.json') 
 
         # Output folder to save renamed files
         self.file_output_folder = 'D:/WORKING_DIRECTORY/'
@@ -759,11 +746,12 @@ class DataModel:
             sys.exit(1)         
         elif not os.path.exists(self.file_output_folder):
             QMessageBox.critical(None, "ERROR", f"Output folder does not exist: {self.file_output_folder} \nCheck that hard drive is connected.")
-            sys.exit(1)
+            #sys.exit(1)
+            
         
-        # Load configuration file
+        # Load UI configuration file
         with open(self.config_file_path, 'r') as f:
-            self.CONFIG_DICT = json.load(f)
+            self.config_dict = json.load(f)
 
 
         # Notes file path         
@@ -796,6 +784,32 @@ class DataModel:
         # DeID for current session
         self.deid = None
         
+        
+    
+    def load_file_paths(json_file_path):
+        """
+        Load file paths from a JSON configuration file.
+
+        Args:
+            json_file_path (str): The path to the JSON configuration file.
+
+        Returns:
+            dict: A dictionary containing the file paths with expanded user directories, or None if an error occurs.
+        """
+        try:
+            # Load the JSON file
+            with open(json_file_path, 'r') as file:
+                config = json.load(file)
+
+            # Expand user directories and return the updated paths
+            expanded_paths = {key: os.path.expanduser(path) for key, path in config.items()}
+            return expanded_paths
+
+        except FileNotFoundError:
+            QMessageBox.critical(None, "Error", f"JSON file not found: {json_file_path}")
+            
+        return None
+    
     
     def clear_data(self):
         """Reset data model"""
@@ -805,11 +819,17 @@ class DataModel:
     def get_list_of_current_paradigms(self):
         """Get list of paradigms for current study preset"""
         current_study = self.session_info['study']
-        return self.CONFIG_DICT[current_study]['paradigm']['options']
+        return self.config_dict[current_study]['paradigm']['options']
         
     
     def load_deid_log(self, file_path):
         """Read deid log into pandas dataframe, ignoring rows without available deids"""
+        
+        # check if wifi is connected
+        if not self.check_internet_connection():
+            QMessageBox.critical(None, "ERROR", f"No internet connection. Check that wifi is connected and OneDrive is syncing!")
+            raise Exception("No internet connection.")
+            
         
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Deid log {file_path} does not exist!")        
@@ -824,7 +844,13 @@ class DataModel:
         self.deid_log.reset_index(drop=True, inplace=True)
 
   
-
+    def check_internet_connection(self):
+        try:
+            # check if you can connect to google
+            create_connection(("www.google.com", 80), timeout=5)
+            return True
+        except OSError:
+            return False
 
     def save_session_to_deid_log(self):
         """Get deid and update deid log with current session information"""
@@ -873,8 +899,8 @@ class DataModel:
                     df.at[empty_row_index, column_name] = 1
                 else:
                     df.at[empty_row_index, column_name] += 1  
-            if 'raw_file' in eeg_file_dict:
-                file_names_list.append(os.path.basename(eeg_file_dict['raw_file']))
+            if 'mff_file' in eeg_file_dict:
+                file_names_list.append(os.path.basename(eeg_file_dict['mff_file']))
                 
         
         # Join collected file names into a semicolon-separated string
@@ -976,11 +1002,10 @@ class DataModel:
         dat = self.session_info
 
         for cur_file_info in self.eeg_file_info:
-            src_path_raw = cur_file_info['raw_file']
-            src_path_mff = cur_file_info['mff_folder']
+            src_path = cur_file_info['mff_file']
 
             # Skip files if paths are missing
-            if not src_path_raw or not src_path_mff:
+            if not src_path:
                 continue
             
             paradigm = cur_file_info['paradigm']
@@ -993,16 +1018,13 @@ class DataModel:
             final_directory_path = self.create_directory(destination_folder, 'back_up', dat['study'], f"{dat['subject_id']} {dat['subject_initials']}", dat['visit_number'])
             
             # Create destination paths
-            dst_path_raw = os.path.join(final_directory_path, base_name + '.raw')
-            dst_path_mff = os.path.join(final_directory_path, base_name + '.mff')
+            dst_path = os.path.join(final_directory_path, base_name + '.mff')
 
             # Check if files already exist
-            self.check_file_exists(dst_path_raw)
-            self.check_file_exists(dst_path_mff)
+            self.check_file_exists(dst_path)
 
             # Copy files
-            shutil.copy2(src_path_raw, dst_path_raw)
-            shutil.copytree(src_path_mff, dst_path_mff)
+            shutil.copytree(src_path, dst_path)
 
         # Save notes file
         new_notes_file_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}" + os.path.splitext(self.notes_file)[1]
@@ -1014,7 +1036,7 @@ class DataModel:
         paradigm_counter = {}
 
         for cur_file_info in self.eeg_file_info:
-            src_path = cur_file_info['raw_file']
+            src_path = cur_file_info['mff_file']
             
             # Skip files if paths are missing
             if not src_path:
@@ -1033,9 +1055,19 @@ class DataModel:
                 base_name += "_speakers"
 
             final_directory_path = self.create_directory(destination_folder, "deidentified")
-            dst_path_deid = os.path.join(final_directory_path, base_name + ".raw")
+            dst_path_deid = os.path.join(final_directory_path, base_name + ".mff")
 
-            shutil.copy2(src_path, dst_path_deid)
+            # deidentify 
+            # try:
+            #     self.deidentify_mff(
+            #         mff_file_path = src_path, 
+            #         original_filename = os.path.splitext(os.path.basename(src_path))[0], 
+            #         new_filename = base_name
+            #     )
+            # except Exception as error:
+            #     print("PANIC")
+                
+            shutil.copytree(src_path, dst_path_deid)
 
         # Save notes file
         new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
@@ -1063,6 +1095,44 @@ class DataModel:
         except Exception as e:
             QMessageBox.critical(None, "ERROR", f"Error zipping net placement photos:\n{str(e)}")
             sys.exit(1)
+            
+            
+    def deidentify_mff(mff_file_path, original_filename, new_filename):
+        
+        # List of files to deidentify within the .MFF directory
+        files_to_deidentify = ['hostTimes.xml', 'movieSyncs1.xml', 'subject.xml', 'techNote.rtf']
+        # Loop through each file and apply deidentification
+        for file_name in files_to_deidentify:
+            file_path = os.path.join(mff_file_path, file_name)
+            
+            # Check if file exists
+            if not os.path.exists(file_path):
+                print(f"File not found: {file_path}")
+                return
+                    
+            # Read the file as text
+            with open(file_path, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+            # Replace old file name with the deidentified file name
+            file_content = file_content.replace(original_filename, new_filename)
+            # Replace old ID with deidentified ID
+            original_id = original_filename.rsplit('_', 2)[0]
+            file_content = file_content.replace(original_id, new_filename)
+            # Write the deidentified content back to the file
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(file_content)
+            
+        # Loop through files
+        for cur_file in os.listdir(mff_file_path):
+            
+            # Remove participant video .mov files
+            if cur_file.endswith('.mov'):
+                movie_file_path = os.path.join(mff_file_path, cur_file)
+                os.remove(movie_file_path)
+            # Rename log file
+            if original_filename in cur_file and cur_file.endswith('.txt'):
+                os.rename(os.path.join(mff_file_path, cur_file),
+                    os.path.join(mff_file_path, cur_file.replace(original_filename, new_filename)))
 
 
 

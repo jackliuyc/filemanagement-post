@@ -1,0 +1,7 @@
+{
+    "deid_log_filepath": "C:/Users/eplab/Onedrive - cchmc/Datashare/EEG_DEIDENTIFICATION_LOG/DeidentifyPatientNum_NEW.xlsx",
+    "mff_backup_output_dir": "placeholder_value_1",
+    "deid_output_dir": "placeholder_value_2",
+
+    "usb_input_di": "asdf"
+}
