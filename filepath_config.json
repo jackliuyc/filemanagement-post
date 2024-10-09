@@ -7,5 +7,5 @@
 
     "net_placement_photo_dir": "~/OneDrive - cchmc/Datashare/eeg_net_placement_photos",
 
-    "1usb_input_dir": "E:/"
+    "usb_input_dir": "E:/"
 }
