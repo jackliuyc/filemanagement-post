@@ -721,32 +721,15 @@ class DataModel:
         "other": "Other"
     }
 
-    # File path for deidentification spreadsheet
-    DEID_LOG_FILEPATH = os.path.join(os.path.expanduser("~"), "Onedrive - cchmc/Datashare/EEG_DEIDENTIFICATION_LOG/DeidentifyPatientNum_NEW.xlsx")
-    
     def __init__(self):
         
+        # Load file path configuration
+        self.filepath_dict = self.load_file_paths()
+        self.deid_log_filepath = self.filepath_dict['deid_log_filepath']
 
-        
-    
-        
-
-        # Configuration dictionary containing presets
+        # Load UI configuration containing presets
         self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui_config.json') 
 
-        # Output folder to save renamed files
-        self.file_output_folder = 'D:/WORKING_DIRECTORY/'
-        
-        # Error out if file paths aren't available 
-        if not os.path.exists(self.DEID_LOG_FILEPATH):
-            QMessageBox.critical(None, "ERROR", f"DeID log file path does not exist: {self.DEID_LOG_FILEPATH}")
-            sys.exit(1)
-        elif not os.path.exists(self.config_file_path):
-            QMessageBox.critical(None, "ERROR", f"Configuration file path does not exist: {self.config_file_path}")
-            sys.exit(1)         
-        elif not os.path.exists(self.file_output_folder):
-            QMessageBox.critical(None, "ERROR", f"Output folder does not exist: {self.file_output_folder} \nCheck that hard drive is connected.")
-            #sys.exit(1)
             
         
         # Load UI configuration file
@@ -779,37 +762,33 @@ class DataModel:
         
         # Init deid log
         self.deid_log = pd.DataFrame()
-        self.load_deid_log(self.DEID_LOG_FILEPATH)
+        self.load_deid_log(self.deid_log_filepath)
         
         # DeID for current session
         self.deid = None
         
         
     
-    def load_file_paths(json_file_path):
-        """
-        Load file paths from a JSON configuration file.
-
-        Args:
-            json_file_path (str): The path to the JSON configuration file.
-
-        Returns:
-            dict: A dictionary containing the file paths with expanded user directories, or None if an error occurs.
-        """
+    def load_file_paths(self):
+        filepath_config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filepath_config.json')         
         try:
-            # Load the JSON file
-            with open(json_file_path, 'r') as file:
+            with open(filepath_config_file_path, 'r') as file:
                 config = json.load(file)
+            
+            for key, path in config.items():
+                expanded_path = os.path.expanduser(path) 
+                
+                # check if path exists
+                if not os.path.exists(expanded_path):
+                    QMessageBox.critical(None, "ERROR", f"Check that the USB, hard drive, and Onedrive are conneccted!\n\nThe following file path cannot be found:\n{key}: {expanded_path}")
+                    sys.exit(1)  
 
-            # Expand user directories and return the updated paths
             expanded_paths = {key: os.path.expanduser(path) for key, path in config.items()}
             return expanded_paths
 
         except FileNotFoundError:
-            QMessageBox.critical(None, "Error", f"JSON file not found: {json_file_path}")
-            
-        return None
-    
+            QMessageBox.critical(None, "Error", f"JSON file not found: {filepath_config_file_path}")
+            sys.exit(1)   
     
     def clear_data(self):
         """Reset data model"""
@@ -823,13 +802,7 @@ class DataModel:
         
     
     def load_deid_log(self, file_path):
-        """Read deid log into pandas dataframe, ignoring rows without available deids"""
-        
-        # check if wifi is connected
-        if not self.check_internet_connection():
-            QMessageBox.critical(None, "ERROR", f"No internet connection. Check that wifi is connected and OneDrive is syncing!")
-            raise Exception("No internet connection.")
-            
+        """Read deid log into pandas dataframe, ignoring rows without available deids"""            
         
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Deid log {file_path} does not exist!")        
@@ -842,15 +815,7 @@ class DataModel:
         first_column = self.deid_log.columns[0]
         self.deid_log = self.deid_log[self.deid_log[first_column].notna()]
         self.deid_log.reset_index(drop=True, inplace=True)
-
-  
-    def check_internet_connection(self):
-        try:
-            # check if you can connect to google
-            create_connection(("www.google.com", 80), timeout=5)
-            return True
-        except OSError:
-            return False
+        
 
     def save_session_to_deid_log(self):
         """Get deid and update deid log with current session information"""
@@ -907,7 +872,7 @@ class DataModel:
         df.at[empty_row_index, 'original_file_names'] = ';'.join(file_names_list)
                         
         # Update work book (only at specified row)
-        wb = load_workbook(self.DEID_LOG_FILEPATH)
+        wb = load_workbook(self.deid_log_filepath)
         sheet = wb.active
         
         sheet.protection.disable()
@@ -926,7 +891,7 @@ class DataModel:
         sheet.protection.enable()
 
         # Save the workbook with the updated row
-        wb.save(self.DEID_LOG_FILEPATH)
+        wb.save(self.deid_log_filepath)
 
 
     def check_row_already_exists(self, df, cur_session_data):
@@ -941,16 +906,16 @@ class DataModel:
 
     def back_up_deid_log(self):
         """back up current version of deid log (backs once per day before edits)"""
-        backup_folder = os.path.join(os.path.dirname(self.DEID_LOG_FILEPATH), 'deid_log_backups')
+        backup_folder = os.path.join(os.path.dirname(self.deid_log_filepath), 'deid_log_backups')
         if not os.path.exists(backup_folder):
             os.makedirs(backup_folder)        
-        name, extension = os.path.splitext(os.path.basename(self.DEID_LOG_FILEPATH))
+        name, extension = os.path.splitext(os.path.basename(self.deid_log_filepath))
         date_str = datetime.now().strftime("%m-%d-%Y")
         new_file_name = f"{name}_{date_str}{extension}"
         backup_filepath = os.path.join(backup_folder, new_file_name)
         if os.path.exists(backup_filepath):
             return  
-        shutil.copy2(self.DEID_LOG_FILEPATH, backup_filepath)
+        shutil.copy2(self.deid_log_filepath, backup_filepath)
 
 
         
@@ -998,7 +963,7 @@ class DataModel:
 
     def copy_and_rename_files(self):
         paradigm_counter = {}
-        destination_folder = self.file_output_folder
+        destination_folder = self.filepath_dict['mff_backup_dir']
         dat = self.session_info
 
         for cur_file_info in self.eeg_file_info:
@@ -1032,7 +997,7 @@ class DataModel:
 
 
     def save_deid_files(self):
-        destination_folder = self.file_output_folder
+        destination_folder = self.filepath_dict['mff_deid_dir']
         paradigm_counter = {}
 
         for cur_file_info in self.eeg_file_info:
@@ -1078,7 +1043,7 @@ class DataModel:
         if not self.net_placement_photos:
             return
 
-        destination_folder = self.file_output_folder
+        destination_folder = self.filepath_dict['net_placement_photo_dir']
         dat = self.session_info
         paradigm = "netplacementphotos"
 
@@ -1147,7 +1112,7 @@ class DataModel:
         """Save session and file info in json sidecar file"""
                 
         paradigm_counter = {}
-        destination_folder = self.file_output_folder 
+        destination_folder = self.filepath_dict['mff_backup_dir'] 
         dat = self.session_info 
         
         # Loop through all files

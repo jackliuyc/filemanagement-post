@@ -1,7 +1,13 @@
 {
-    "deid_log_filepath": "C:/Users/eplab/Onedrive - cchmc/Datashare/EEG_DEIDENTIFICATION_LOG/DeidentifyPatientNum_NEW.xlsx",
-    "mff_backup_output_dir": "placeholder_value_1",
-    "deid_output_dir": "placeholder_value_2",
 
-    "usb_input_di": "asdf"
+    "deid_log_filepath": "~/Onedrive - cchmc/Datashare/EEG_DEIDENTIFICATION_LOG/DeidentifyPatientNum_NEW.xlsx",
+    
+    "mff_backup_dir": "D:/WORKING_DIRECTORY/back_up/",
+
+    "mff_deid_dir": "D:/WORKING_DIRECTORY/deidentified/",
+
+    "net_placement_photo_dir": "~/OneDrive - cchmc/Datashare/eeg_net_placement_photos",
+
+    "usb_input_dir": "E:/"
+
 }
