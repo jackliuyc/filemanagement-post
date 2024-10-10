@@ -555,7 +555,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.session_info_tab, "Session Information")
         
         # Slot for session info confirm signal
-        self.session_info_tab.confirm_session_info_signal.connect(self.confirm_session_info)
+        self.session_info_tab.confirm_session_info_signal.connect(self.validate_session_and_swap_tabs)
 
         # Init file upload tab  
         self.file_upload_tab = FileInputForm(self.data_model)
@@ -565,7 +565,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.setCurrentIndex(0)
         
         # Slot for file info confirm signal 
-        self.file_upload_tab.confirm_file_info_signal.connect(self.confirm_file_info)
+        self.file_upload_tab.confirm_file_info_signal.connect(self.process_files)
 
 
     def init_menu(self):
@@ -601,7 +601,7 @@ class MainWindow(QMainWindow):
         self.data_model.clear_data()
 
 
-    def confirm_session_info(self):
+    def validate_session_and_swap_tabs(self):
         """When session confirm button is clicked: double check validity, update model, and swap to second tab"""
         all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
         if all_valid:
@@ -617,7 +617,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "WARNING", "Check that the fields are valid. If you see this something is really really wrong.")
             
             
-    def confirm_file_info(self):
+    def process_files(self):
         """When file confirm button is pressed: double check validity, then process files"""
         
         # Check all file fields filled out
@@ -787,7 +787,7 @@ class DataModel:
                 
                 # check if path exists
                 if not os.path.exists(expanded_path):
-                    QMessageBox.critical(None, "ERROR", f"Check that the USB, hard drive, and Onedrive are conneccted!\n\nThe following file path cannot be found:\n{key}: {expanded_path}")
+                    QMessageBox.critical(None, "ERROR", f"Make sure that the following are connected:\n1. USB\n2. External drive\n3. OneDrive\n\nThe following path cannot be found:\n{expanded_path}")
                     sys.exit(1)  
 
             expanded_paths = {key: os.path.expanduser(path) for key, path in config.items()}
