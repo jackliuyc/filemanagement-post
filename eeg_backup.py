@@ -900,6 +900,8 @@ class DataModel:
         # Save the workbook with the updated row
         wb.save(self.deid_log_filepath)
 
+        wb.close()
+
 
     def check_row_already_exists(self, df, cur_session_data):
         """Check if a row with the same session data already exists in the DataFrame"""
