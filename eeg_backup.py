@@ -337,6 +337,7 @@ class FileInputForm(QWidget):
 
         # Paradigm selection combo box
         paradigm_combo = QComboBox()
+        paradigm_combo.wheelEvent = lambda event:None
         paradigm_combo.addItems(self.data_model.get_list_of_current_paradigms())
         paradigm_combo.currentIndexChanged.connect(self.check_form_completion)
         form_layout.addRow(QLabel(f"Paradigm {len(self.sections) + 1}:"), paradigm_combo)
@@ -717,9 +718,8 @@ class DataModel:
         "listen": "TalkListen", 
         "vdaudio": "Visual Discrimination", 
         "vdnoaudio": "Visual Discrimination", 
-        "slstructured": "SL Passive", 
-        "slrandom": "SL Passive", 
-        "slactive": "SL Active", 
+        "slstructured": "SL Structured", 
+        "slrandom": "SL Random", 
         "habituation": "Habituation",
         "bblong": "BB Long", 
         "tactilechirp": "Tactile Chirp", 
