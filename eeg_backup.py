@@ -891,9 +891,6 @@ class DataModel:
             cell.value = df.at[empty_row_index, col_name] # set cell value
             if col_name == 'Visit Date':
                 cell.number_format = "MM/DD/YYYY"
-                
-            # Ensure cells are unlocked 
-            cell.protection = Protection(locked=False)
 
         sheet.protection.enable()
 
