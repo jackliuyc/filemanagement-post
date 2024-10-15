@@ -392,12 +392,18 @@ class FileInputForm(QWidget):
             default_folder = ""
         folder = QFileDialog.getExistingDirectory(
             self, 
-            "Select .MFF folder", 
+            "Select .MFF file", 
             default_folder, 
             options=options
         )
         if folder:
-            mff_label.setText(folder)
+            # Check if the folder name ends with .mff
+            folder_name = os.path.basename(folder)
+            if folder_name.endswith('.mff'):
+                mff_label.setText(folder)
+            else:
+                mff_label.setText("No file selected")
+                QMessageBox.warning(self, 'Invalid Selection', 'The selected folder is not a valid .mff file!')
         self.check_form_completion()  # Check validity and update buttons
         
         
