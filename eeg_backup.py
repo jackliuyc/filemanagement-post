@@ -901,22 +901,23 @@ class DataModel:
         # Save the workbook with the updated row
         wb.save(self.deid_log_filepath)
 
+        # Save a second copy of the workbook as a backup
+        backup_filepath = os.path.join(os.path.dirname(self.deid_log_filepath), 'deid_log_backups', "deid_log_edited_backup.xlsx")
+        wb.save(backup_filepath)
+
         wb.close()
 
 
     def check_if_session_info_already_exists(self):
         """Check if a row with the same session data already exists in the DataFrame"""
-   
-        print(self.session_info)
-   
-        df = self.deid_log
+           
         # Vectorized comparison for better performance
         mask = (
-            (df['Study'] == self.session_info['study']) &
-            (df['Subject ID'] == self.session_info['subject_id']) &
-            (df['Visit Num'] == self.session_info['visit_number']) &
-            (df['Visit Date'] == self.session_info['date']) &
-            (df['Initials'] == self.session_info['subject_initials'])
+            (self.deid_log['Study'] == self.session_info['study']) &
+            (self.deid_log['Subject ID'] == self.session_info['subject_id']) &
+            (self.deid_log['Visit Num'] == self.session_info['visit_number']) &
+            (self.deid_log['Visit Date'] == self.session_info['date']) &
+            (self.deid_log['Initials'] == self.session_info['subject_initials'])
         )
 
         return mask.any()
