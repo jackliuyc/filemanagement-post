@@ -343,9 +343,9 @@ class FileInputForm(QWidget):
         form_layout.addRow(QLabel(f"Paradigm {len(self.sections) + 1}:"), paradigm_combo)
 
         # MFF file button
-        mff_button = QPushButton("Upload .MFF folder")
-        mff_label = QLabel("No folder selected")
-        mff_button.clicked.connect(lambda _, label=mff_label: self.upload_mff(label))
+        mff_button = QPushButton("Upload .MFF file")
+        mff_label = QLabel("No file selected")
+        mff_button.clicked.connect(lambda _, label=mff_label, combo=paradigm_combo: self.upload_mff(label, combo))
         form_layout.addRow(mff_button, mff_label)
 
         # Sections for each paradigm using QWidgets
@@ -378,14 +378,14 @@ class FileInputForm(QWidget):
         # Check if all sections are complete (selected paradigm + loaded mff)
         all_sections_complete = all(
             section["paradigm_combo"].currentIndex() != 0 and
-            section["mff_label"].text() != "No folder selected"
+            section["mff_label"].text() != "No file selected"
             for section in self.sections
         )
         self.add_button.setEnabled(all_sections_complete)
         self.confirm_file_button.setEnabled(all_sections_complete)
         
-    def upload_mff(self, mff_label):
-        """File dialog for selecting MFF file"""
+    def upload_mff(self, mff_label, paradigm_combo):
+        """File dialog for selecting MFF file. Checks that selected folder is .mff and if file name matches chosen paradigm."""
         options = QFileDialog.Options()
         default_folder = self.data_model.filepath_dict['usb_input_dir']
         if not os.path.exists(default_folder):
@@ -396,14 +396,23 @@ class FileInputForm(QWidget):
             default_folder, 
             options=options
         )
+        
         if folder:
-            # Check if the folder name ends with .mff
+            # check if the folder name ends with .mff
             folder_name = os.path.basename(folder)
             if folder_name.endswith('.mff'):
+                
+                # check if folder name contains paradigm
+                paradigm_name = paradigm_combo.currentText()
+                if not paradigm_name.lower() in folder_name.lower():
+                    QMessageBox.warning(self, 'WARNING', f'The selected file does not contain the selected paradigm name: "{paradigm_name}"\n\nCheck that you have selected the correct .mff file!')
+                
+                # set label regardless (only warn do not force user to have paradigm in file name in case of typos)
                 mff_label.setText(folder)
+                
             else:
                 mff_label.setText("No file selected")
-                QMessageBox.warning(self, 'Invalid Selection', 'The selected folder is not a valid .mff file!')
+                QMessageBox.warning(self, 'WARNING', 'The selected folder is not a valid .mff file!')
         self.check_form_completion()  # Check validity and update buttons
         
         
@@ -483,7 +492,7 @@ class FileInputForm(QWidget):
             mff_file = section['mff_label'].text()
             file_info = {
                 'paradigm': paradigm,
-                'mff_file': mff_file if mff_file != "No folder selected" else None
+                'mff_file': mff_file if mff_file != "No file selected" else None
             }
             self.data_model.eeg_file_info.append(file_info)
                     
@@ -637,7 +646,7 @@ class MainWindow(QMainWindow):
         # Check all file fields filled out
         all_valid = all(
             section["paradigm_combo"].currentIndex() != 0 and
-            section["mff_label"].text() != "No folder selected"
+            section["mff_label"].text() != "No file selected"
             for section in self.file_upload_tab.sections
         ) and self.file_upload_tab.notes_label != "No file selected"
         
