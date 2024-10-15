@@ -614,7 +614,7 @@ class MainWindow(QMainWindow):
         
         # Check if session info already exists in deid log
         if self.data_model.check_if_session_info_already_exists():
-            QMessageBox.warning(self, "WARNING", "The current session information already exists in the DeID log! Check that you entered everything correctly.")
+            QMessageBox.warning(self, "WARNING", "The current session information matches an existing entry in the DeID log! Check that you entered everything correctly.")
             return
 
         # Swap to second tab            
@@ -906,26 +906,21 @@ class DataModel:
 
     def check_if_session_info_already_exists(self):
         """Check if a row with the same session data already exists in the DataFrame"""
-        
-        
-        # Update DataFrame with session info
-        cur_session_data = {
-            'Study': self.session_info['study'],
-            'Subject ID': self.session_info['subject_id'],
-            'Visit Num': self.session_info['visit_number'],
-            'Visit Date': self.session_info['date'],
-            'Initials': self.session_info['subject_initials'],
-            'Location': self.session_info['location'],
-            'Net Serial Number': int(self.session_info['net_serial_number']),
-            'Notes': self.session_info['other_notes']
-        }
-        
+   
+        print(self.session_info)
+   
         df = self.deid_log
+        # Vectorized comparison for better performance
+        mask = (
+            (df['Study'] == self.session_info['study']) &
+            (df['Subject ID'] == self.session_info['subject_id']) &
+            (df['Visit Num'] == self.session_info['visit_number']) &
+            (df['Visit Date'] == self.session_info['date']) &
+            (df['Initials'] == self.session_info['subject_initials'])
+        )
+
+        return mask.any()
         
-        columns_2_check = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
-        for _, cur_row in df.iterrows():
-            if all(cur_row[col] == cur_session_data[col] for col in columns_2_check):
-                return True
             
 
     def back_up_deid_log(self):
