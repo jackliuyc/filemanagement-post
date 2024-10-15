@@ -605,17 +605,24 @@ class MainWindow(QMainWindow):
     def validate_session_and_swap_tabs(self):
         """When session confirm button is clicked: double check validity, update model, and swap to second tab"""
         all_valid = all(self.session_info_tab.indicators[field].text() == "✅" for field in self.session_info_tab.indicators)
-        if all_valid:
-            # Update data model with session information
-            self.session_info_tab.update_session_info()
-            # Swap to second tab            
-            self.file_upload_tab.reset_file_form()
-            self.tab_widget.setTabEnabled(1, True)
-            self.tab_widget.setCurrentIndex(1)
-            # Disable first tab (have to reset whole session)
-            self.tab_widget.setTabEnabled(0, False)
-        else:
+        if not all_valid:
             QMessageBox.warning(self, "WARNING", "Check that the fields are valid. If you see this something is really really wrong.")
+            return
+        
+        # Update data model with session information
+        self.session_info_tab.update_session_info()
+        
+        # Check if session info already exists in deid log
+        if self.data_model.check_if_session_info_already_exists():
+            QMessageBox.warning(self, "WARNING", "The current session information already exists in the DeID log! Check that you entered everything correctly.")
+            return
+
+        # Swap to second tab            
+        self.file_upload_tab.reset_file_form()
+        self.tab_widget.setTabEnabled(1, True)
+        self.tab_widget.setCurrentIndex(1)
+        # Disable first tab (have to reset whole session)
+        self.tab_widget.setTabEnabled(0, False)
             
             
     def process_files(self):
@@ -629,7 +636,7 @@ class MainWindow(QMainWindow):
         ) and self.file_upload_tab.notes_label != "No file selected"
         
         if not all_valid:
-            QMessageBox.warning(self, "WARNING", "Check that the fields are valid. If you see this something is really really wrong.")
+            QMessageBox.warning(self, "WARNING", "Check that the fields are valid. If you see this something is really wrong.")
             return
         
 
@@ -856,9 +863,6 @@ class DataModel:
         for key, value in cur_session_data.items():
             df.at[empty_row_index, key] = value   
         
-            
-        # Check if row already exists 
-        self.check_row_already_exists(df, cur_session_data)
 
             
         # Add paradigms
@@ -900,14 +904,28 @@ class DataModel:
         wb.close()
 
 
-    def check_row_already_exists(self, df, cur_session_data):
+    def check_if_session_info_already_exists(self):
         """Check if a row with the same session data already exists in the DataFrame"""
+        
+        
+        # Update DataFrame with session info
+        cur_session_data = {
+            'Study': self.session_info['study'],
+            'Subject ID': self.session_info['subject_id'],
+            'Visit Num': self.session_info['visit_number'],
+            'Visit Date': self.session_info['date'],
+            'Initials': self.session_info['subject_initials'],
+            'Location': self.session_info['location'],
+            'Net Serial Number': int(self.session_info['net_serial_number']),
+            'Notes': self.session_info['other_notes']
+        }
+        
+        df = self.deid_log
         
         columns_2_check = ['Study', 'Subject ID', 'Visit Num', 'Visit Date', 'Initials']
         for _, cur_row in df.iterrows():
             if all(cur_row[col] == cur_session_data[col] for col in columns_2_check):
-                QMessageBox.critical(None, "ERROR", f"This session matches an existing entry in the DeID log. Check that you entered everything correctly!")
-                raise Exception("Session already exists in the deid log. Cannot proceed with updating log or copying files.")
+                return True
             
 
     def back_up_deid_log(self):
