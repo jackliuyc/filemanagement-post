@@ -929,10 +929,8 @@ class DataModel:
         # Vectorized comparison for better performance
         mask = (
             (self.deid_log['Study'] == self.session_info['study']) &
-            (self.deid_log['Subject ID'] == self.session_info['subject_id']) &
-            (self.deid_log['Visit Num'] == self.session_info['visit_number']) &
-            (self.deid_log['Visit Date'] == self.session_info['date']) &
-            (self.deid_log['Initials'] == self.session_info['subject_initials'])
+            (self.deid_log['Subject ID'].astype(str) == str(self.session_info['subject_id'])) &
+            (self.deid_log['Visit Num'] == self.session_info['visit_number']) 
         )
 
         return mask.any()
