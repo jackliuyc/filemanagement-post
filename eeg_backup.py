@@ -1061,7 +1061,7 @@ class DataModel:
 
         # Save notes file
         new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
-        shutil.copy2(self.notes_file, os.path.join(destination_folder, "Session notes", new_notes_file_name))
+        shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))
 
 
     def save_net_placement_photos(self):
