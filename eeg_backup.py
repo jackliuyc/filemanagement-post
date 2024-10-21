@@ -1039,7 +1039,7 @@ class DataModel:
             if self.session_info.get('audio_source') == 'speakers' and paradigm != 'rest':
                 base_name += "_speakers"
 
-            dst_path_deid = os.path.join(destination_folder, base_name + ".mff")
+            dst_path_deid = os.path.join(destination_folder, paradigm,  base_name + ".mff")
 
             # check that you're not overwriting any files            
             self.check_file_exists(dst_path_deid)
@@ -1061,7 +1061,7 @@ class DataModel:
 
         # Save notes file
         new_notes_file_name = f"{self.deid:04}_notes" + os.path.splitext(self.notes_file)[1]
-        shutil.copy2(self.notes_file, os.path.join(destination_folder, new_notes_file_name))
+        shutil.copy2(self.notes_file, os.path.join(destination_folder, "Session notes", new_notes_file_name))
 
 
     def save_net_placement_photos(self):
