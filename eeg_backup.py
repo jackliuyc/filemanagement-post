@@ -442,7 +442,7 @@ class FileInputForm(QWidget):
             self,
             "Select Images",
             "",
-            "Images (*.png *.jpg);;All Files (*)",
+            "Images (*.png *.jpg *.jpeg);;All Files (*)",
             options=options
         )
         if files:
