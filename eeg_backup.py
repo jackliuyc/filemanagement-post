@@ -299,7 +299,7 @@ class FileInputForm(QWidget):
         self.layout.addWidget(self.notes_label)
         
         # Net placement photos
-        self.photos_button = QPushButton("Upload Net Placement Photos (.png, .jpg)")
+        self.photos_button = QPushButton("Upload Net Placement Photos (.png, .jpg, .jpeg)")
         self.photos_button.clicked.connect(self.upload_photos)
         self.photos_label = QLabel("No photos selected")
         self.layout.addWidget(self.photos_button)
@@ -405,14 +405,14 @@ class FileInputForm(QWidget):
                 # check if folder name contains paradigm
                 paradigm_name = paradigm_combo.currentText()
                 if not paradigm_name.lower() in folder_name.lower():
-                    QMessageBox.warning(self, 'WARNING', f'The selected file does not contain the selected paradigm name: "{paradigm_name}"\n\nCheck that you have selected the correct .mff file!')
+                    QMessageBox.warning(self, 'WARNING', f'The file name of the .mff file you picked does not contain the EEG paradigm you selected: "{paradigm_name}"\n\nCheck that you have selected the correct .mff file!')
                 
                 # set label regardless (only warn do not force user to have paradigm in file name in case of typos)
                 mff_label.setText(folder)
                 
             else:
                 mff_label.setText("No file selected")
-                QMessageBox.warning(self, 'WARNING', 'The selected folder is not a valid .mff file!')
+                QMessageBox.warning(self, 'WARNING', 'The selected file is not a valid .mff file!')
         self.check_form_completion()  # Check validity and update buttons
         
         
@@ -759,6 +759,8 @@ class DataModel:
         # Load UI configuration containing presets
         self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui_config.json') 
 
+
+        self.check_if_local_backup_matches_synced_log()
             
         
         # Load UI configuration file
@@ -848,10 +850,7 @@ class DataModel:
 
     def save_session_to_deid_log(self):
         """Get deid and update deid log with current session information"""
-        
-        # back up deid log before editing
-        self.back_up_deid_log()
-       
+               
         # get deid log and determine first empty row
         df = self.deid_log.copy()
         empty_row_index = self.get_empty_row_index_from_deid_log()
@@ -917,8 +916,7 @@ class DataModel:
         wb.save(self.deid_log_filepath)
 
         # Save a second copy of the workbook as a backup
-        backup_filepath = os.path.join(os.path.dirname(self.deid_log_filepath), 'deid_log_backups', "deid_log_edited_backup.xlsx")
-        wb.save(backup_filepath)
+        wb.save(self.filepath_dict['deid_log_local_backup_filepath'])
 
         wb.close()
 
@@ -936,21 +934,16 @@ class DataModel:
         return mask.any()
         
             
-
-    def back_up_deid_log(self):
-        """back up current version of deid log (backs once per day before edits)"""
-        backup_folder = os.path.join(os.path.dirname(self.deid_log_filepath), 'deid_log_backups')
-        if not os.path.exists(backup_folder):
-            os.makedirs(backup_folder)        
-        name, extension = os.path.splitext(os.path.basename(self.deid_log_filepath))
-        date_str = datetime.now().strftime("%m-%d-%Y")
-        new_file_name = f"{name}_{date_str}{extension}"
-        backup_filepath = os.path.join(backup_folder, new_file_name)
-        if os.path.exists(backup_filepath):
-            return  
-        shutil.copy2(self.deid_log_filepath, backup_filepath)
-
-
+    def check_if_local_backup_matches_synced_log(self):
+        """Check if local copy matches synced copy to ensure there are no conflicts"""
+        
+        df1 = pd.read_excel(self.filepath_dict['deid_log_filepath'])[['Study', 'Subject ID', 'Visit Num']]
+        df2 = pd.read_excel(self.filepath_dict['deid_log_local_backup_filepath'])[['Study', 'Subject ID', 'Visit Num']]
+    
+        if not df1.equals(df2):  
+            QMessageBox.critical(None, 'ERROR', f'OneDrive Sync Error! Local copy does not match synced deid log. PANIC!!!')
+            sys.exit(1)
+            
         
     def get_empty_row_index_from_deid_log(self):
         """Find the index of the first completely empty row (ignoring the first column)"""
