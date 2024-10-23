@@ -8,10 +8,7 @@ import pandas as pd
 from datetime import datetime
 
 from openpyxl import load_workbook
-from openpyxl.styles import Protection
 from zipfile import ZipFile
-
-from socket import create_connection
 
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (
@@ -292,14 +289,14 @@ class FileInputForm(QWidget):
         self.layout = QVBoxLayout(self)
 
         # Notes file input
-        self.notes_button = QPushButton("Upload Session Notes (.txt, .rtf)")
+        self.notes_button = QPushButton("Load Session Notes (.txt, .rtf)")
         self.notes_button.clicked.connect(self.upload_notes_file)
         self.notes_label = QLabel("No file selected")
         self.layout.addWidget(self.notes_button)
         self.layout.addWidget(self.notes_label)
         
         # Net placement photos
-        self.photos_button = QPushButton("Upload Net Placement Photos (.png, .jpg, .jpeg)")
+        self.photos_button = QPushButton("Load Net Placement Photos (.png, .jpg, .jpeg)")
         self.photos_button.clicked.connect(self.upload_photos)
         self.photos_label = QLabel("No photos selected")
         self.layout.addWidget(self.photos_button)
@@ -321,7 +318,7 @@ class FileInputForm(QWidget):
         self.layout.addWidget(self.add_button)
         
         # Add confirm session info button
-        self.confirm_file_button = QPushButton("Rename and Upload EEG Files")
+        self.confirm_file_button = QPushButton("Confirm and Upload")
         self.confirm_file_button.clicked.connect(self.confirm_file_info_signal)
         self.confirm_file_button.setEnabled(False)
         self.layout.addWidget(self.confirm_file_button)
@@ -405,7 +402,7 @@ class FileInputForm(QWidget):
                 # check if folder name contains paradigm
                 paradigm_name = paradigm_combo.currentText()
                 if not paradigm_name.lower() in folder_name.lower():
-                    QMessageBox.warning(self, 'WARNING', f'The file name of the .mff file you picked does not contain the EEG paradigm you selected: "{paradigm_name}"\n\nCheck that you have selected the correct .mff file!')
+                    QMessageBox.warning(self, 'WARNING', f'The .mff file you loaded does not match the EEG paradigm: "{paradigm_name}"\n\nDouble check that you have selected the correct .mff file!')
                 
                 # set label regardless (only warn do not force user to have paradigm in file name in case of typos)
                 mff_label.setText(folder)
@@ -629,7 +626,7 @@ class MainWindow(QMainWindow):
         
         # Check if session info already exists in deid log
         if self.data_model.check_if_session_info_already_exists():
-            QMessageBox.warning(self, "WARNING", "The current session information matches an existing entry in the DeID log! Check that you entered everything correctly.")
+            QMessageBox.warning(self, "WARNING", "The session information matches an existing entry in the DeID log! Cannot proceed with duplicate Check that you entered everything correctly.")
             return
 
         # Swap to second tab            
