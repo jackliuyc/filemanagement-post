@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
         progress_dialog.update_progress(100)
 
         # save sidecar (not used currently)
-        #self.data_model.save_sidecar_files()
+        self.data_model.save_sidecar_files()
 
         # close progress dialog
         progress_dialog.accept()
@@ -1214,6 +1214,7 @@ class DataModel:
         """Save session and file info in json sidecar file"""
 
         # make copy of session info
+        dat = self.session_info.copy()
         sidecar_dict = self.session_info.copy()
         sidecar_dict = {"session_" + key: value for key, value in sidecar_dict.items()}
 
@@ -1237,12 +1238,12 @@ class DataModel:
         destination_folder = self.filepath_dict["mff_backup_dir"]
         final_directory_path = os.path.join(
             destination_folder,
-            sidecar_dict["study"],
-            sidecar_dict["subject_id"] + " " + sidecar_dict["subject_initials"],
-            sidecar_dict["visit_number"],
+            dat["study"],
+            dat["subject_id"] + " " + dat["subject_initials"],
+            dat["visit_number"],
         )
         os.makedirs(final_directory_path, exist_ok=True)
-        base_name = f"{sidecar_dict['study']}_{sidecar_dict['visit_number']}_{sidecar_dict['subject_id']}_{sidecar_dict['subject_initials']}_{sidecar_dict['date']}_sessionSidecar"
+        base_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}_sessionSidecar"
         dst_path_sidecar = os.path.join(final_directory_path, base_name + ".json")
         with open(dst_path_sidecar, "w") as outfile:
             json.dump(sidecar_dict, outfile, indent=4)
