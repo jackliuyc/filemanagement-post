@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
         progress_dialog.update_progress(100)
 
         # save sidecar (not used currently)
-        # self.data_model.save_sidecar_files()
+        #self.data_model.save_sidecar_files()
 
         # close progress dialog
         progress_dialog.accept()
@@ -1233,10 +1233,10 @@ class DataModel:
         for cur_file_info in self.eeg_file_info:
 
             # add file info to json
-            new_file_info = cur_file_info.copy()
-            new_file_info = {
-                "file_" + key: value for key, value in new_file_info.items()
-            }
+            new_file_info = {}
+            new_file_info['file_paradigm'] = cur_file_info['paradigm']
+            new_file_info['file_filename'] = cur_file_info['mff_file']
+            
 
             # placeholders
             new_file_info["file_azure_json"] = ""
