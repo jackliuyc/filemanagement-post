@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
         progress_dialog.update_progress(100)
 
         # save sidecar (not used currently)
-        self.data_model.save_sidecar_files()
+        #self.data_model.save_sidecar_files()
 
         # close progress dialog
         progress_dialog.accept()
