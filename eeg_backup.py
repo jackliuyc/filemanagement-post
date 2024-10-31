@@ -1221,18 +1221,26 @@ class DataModel:
         # generate ULID
         new_ulid = ulid.new()
         sidecar_dict["session_parent_ulid"] = str(new_ulid)
-        sidecar_dict["ulid_timestamp"] = new_ulid.timestamp().datetime.isoformat()
-
-        # add placeholder for 
-        sidecar_dict["session_azure_json"] = ""
+        sidecar_dict["session_parent_ulid_timestamp"] = new_ulid.timestamp().datetime.isoformat()
 
         # initialize list for file info
-        sidecar_dict["eeg_file_info"] = []
+        sidecar_dict["session_eeg_file_info"] = []
 
         # add file info
         # paradigm_counter = {}
         for cur_file_info in self.eeg_file_info:
-            sidecar_dict["eeg_file_info"].append(cur_file_info)
+            
+            # add file info to json
+            new_file_info = cur_file_info.copy()
+            new_file_info = {"file_" + key: value for key, value in new_file_info.items()}
+            
+            # placeholders
+            new_file_info["file_azure_json"] = ""
+            new_file_info["file_azure_link"] = ""
+            new_file_info["file_stage"] = "original"
+            
+            sidecar_dict["session_eeg_file_info"].append(new_file_info)
+
 
         # Sub directory path for saving files in correct folder
         destination_folder = self.filepath_dict["mff_backup_dir"]
