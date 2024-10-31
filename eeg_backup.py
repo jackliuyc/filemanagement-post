@@ -1215,11 +1215,15 @@ class DataModel:
 
         # make copy of session info
         sidecar_dict = self.session_info.copy()
+        sidecar_dict = {"session_" + key: value for key, value in sidecar_dict.items()}
 
         # generate ULID
         new_ulid = ulid.new()
-        sidecar_dict["ulid"] = str(new_ulid)
+        sidecar_dict["session_parent_ulid"] = str(new_ulid)
         sidecar_dict["ulid_timestamp"] = new_ulid.timestamp().datetime.isoformat()
+
+        # add placeholder for 
+        sidecar_dict["session_azure_json"] = ""
 
         # initialize list for file info
         sidecar_dict["eeg_file_info"] = []
