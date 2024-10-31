@@ -1221,7 +1221,7 @@ class DataModel:
         # generate ULID
         new_ulid = ulid.new()
         sidecar_dict["session_parent_ulid"] = str(new_ulid)
-        sidecar_dict["session_parent_ulid_timestamp"] = (
+        sidecar_dict["session_parent_timestamp"] = (
             new_ulid.timestamp().datetime.isoformat()
         )
 
