@@ -5,6 +5,8 @@ import os
 import shutil
 import pandas as pd
 
+import ulid
+
 from datetime import datetime
 
 from openpyxl import load_workbook
@@ -675,6 +677,13 @@ class MainWindow(QMainWindow):
         # zip net placement photos
         self.data_model.save_net_placement_photos()
         progress_dialog.update_progress(100)
+        
+        
+        
+        # save sidecar (not used currently)
+        self.data_model.save_sidecar_files()
+
+
 
         # close progress dialog
         progress_dialog.accept()
@@ -1120,54 +1129,38 @@ class DataModel:
                 os.rename(os.path.join(mff_file_path, cur_file),
                     os.path.join(mff_file_path, cur_file.replace(original_filename, new_filename)))
 
-
-
-
-
-
-                
-    ####################################################
-    ############ TEMPORARILY NOT USED ##################
-    ####################################################   
+#################################################
+############## SAVING SIDECAR JSON ##############
+#################################################    
+    
     def save_sidecar_files(self):
         """Save session and file info in json sidecar file"""
-                
-        paradigm_counter = {}
-        destination_folder = self.filepath_dict['mff_backup_dir'] 
-        dat = self.session_info 
         
-        # Loop through all files
+        # make copy of session info
+        sidecar_dict = self.session_info.copy()
+        
+        # generate ULID
+        new_ulid = ulid.new()
+        sidecar_dict['ulid'] = str(new_ulid)
+        sidecar_dict['ulid_timestamp'] = new_ulid.timestamp().datetime.isoformat()
+        
+        # initialize list for file info
+        sidecar_dict['eeg_file_info'] = []
+        
+        # add file info 
+        #paradigm_counter = {}
         for cur_file_info in self.eeg_file_info:
-            final_sidecar_dict = self.session_info | cur_file_info
-            paradigm = final_sidecar_dict['paradigm']
+            sidecar_dict['eeg_file_info'].append(cur_file_info)
             
-            # Initialize or update the counter for this file type
-            if paradigm not in paradigm_counter:
-                paradigm_counter[paradigm] = 1
-            else:
-                paradigm_counter[paradigm] += 1
-            
-            # Create base file name with optional counter
-            counter = paradigm_counter[paradigm] if paradigm_counter[paradigm] > 1 else ""
-            base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
+        # Sub directory path for saving files in correct folder 
+        destination_folder = self.filepath_dict['mff_backup_dir'] 
+        final_directory_path = os.path.join(destination_folder, sidecar_dict['study'], sidecar_dict['subject_id'] + " " + sidecar_dict['subject_initials'], sidecar_dict['visit_number'])
+        os.makedirs(final_directory_path, exist_ok=True)
+        base_name = f"{sidecar_dict['study']}_{sidecar_dict['visit_number']}_{sidecar_dict['subject_id']}_{sidecar_dict['subject_initials']}_{sidecar_dict['date']}_sessionSidecar"
+        dst_path_sidecar = os.path.join(final_directory_path, base_name + ".json")
+        with open(dst_path_sidecar, "w") as outfile:
+            json.dump(sidecar_dict, outfile, indent=4)
 
-            # Add additional modifiers if needed
-            if self.session_info['cap_type'] == 'babycap':
-                base_name += "_babycap"
-            if self.session_info['audio_source'] == 'speakers' and paradigm != 'rest':
-                base_name += "_speakers"
-                
-            # Sub directory path for saving files in correct folder 
-            final_directory_path = os.path.join(destination_folder, dat['study'], dat['subject_id'] + " " + dat['subject_initials'], dat['visit_number'])
-            os.makedirs(final_directory_path, exist_ok=True)
-
-            # Save json file            
-            dst_path_sidecar = os.path.join(final_directory_path, base_name + ".json")
-            with open(dst_path_sidecar, "w") as outfile:
-                json.dump(final_sidecar_dict, outfile, indent=4)
-        
-    
-    
     
 if __name__ == "__main__":
     app = QApplication(sys.argv)
