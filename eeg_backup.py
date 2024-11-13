@@ -1214,31 +1214,47 @@ class DataModel:
         """Save session and file info in json sidecar file"""
 
         # make copy of session info
+        dat = self.session_info.copy()
         sidecar_dict = self.session_info.copy()
+        sidecar_dict = {"session_" + key: value for key, value in sidecar_dict.items()}
 
         # generate ULID
         new_ulid = ulid.new()
-        sidecar_dict["ulid"] = str(new_ulid)
-        sidecar_dict["ulid_timestamp"] = new_ulid.timestamp().datetime.isoformat()
+        sidecar_dict["session_parent_ulid"] = str(new_ulid)
+        sidecar_dict["session_parent_timestamp"] = (
+            new_ulid.timestamp().datetime.isoformat()
+        )
 
         # initialize list for file info
-        sidecar_dict["eeg_file_info"] = []
+        sidecar_dict["session_eeg_file_info"] = []
 
         # add file info
         # paradigm_counter = {}
         for cur_file_info in self.eeg_file_info:
-            sidecar_dict["eeg_file_info"].append(cur_file_info)
+
+            # add file info to json
+            new_file_info = {}
+            new_file_info['file_paradigm'] = cur_file_info['paradigm']
+            new_file_info['file_filename'] = cur_file_info['mff_file']
+            
+
+            # placeholders
+            new_file_info["file_azure_json"] = ""
+            new_file_info["file_azure_link"] = ""
+            new_file_info["file_stage"] = "original"
+
+            sidecar_dict["session_eeg_file_info"].append(new_file_info)
 
         # Sub directory path for saving files in correct folder
         destination_folder = self.filepath_dict["mff_backup_dir"]
         final_directory_path = os.path.join(
             destination_folder,
-            sidecar_dict["study"],
-            sidecar_dict["subject_id"] + " " + sidecar_dict["subject_initials"],
-            sidecar_dict["visit_number"],
+            dat["study"],
+            dat["subject_id"] + " " + dat["subject_initials"],
+            dat["visit_number"],
         )
         os.makedirs(final_directory_path, exist_ok=True)
-        base_name = f"{sidecar_dict['study']}_{sidecar_dict['visit_number']}_{sidecar_dict['subject_id']}_{sidecar_dict['subject_initials']}_{sidecar_dict['date']}_sessionSidecar"
+        base_name = f"{dat['study']}_{dat['visit_number']}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}_sessionSidecar"
         dst_path_sidecar = os.path.join(final_directory_path, base_name + ".json")
         with open(dst_path_sidecar, "w") as outfile:
             json.dump(sidecar_dict, outfile, indent=4)
