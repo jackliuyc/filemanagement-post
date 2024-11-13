@@ -1021,7 +1021,7 @@ class DataModel:
         # Add additional modifiers if needed
         if self.session_info.get("cap_type") == "babycap":
             base_name += "_babycap"
-        if self.session_info.get("audio_source") == "speakers" and paradigm != "rest":
+        if self.session_info.get("audio_source") == "speakers" and paradigm != "rest" and paradigm != 'resteyesclosed':
             base_name += "_speakers"
 
         return base_name
