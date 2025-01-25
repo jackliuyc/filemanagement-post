@@ -679,9 +679,30 @@ class MainWindow(QMainWindow):
         # Disable first tab (have to reset whole session)
         self.tab_widget.setTabEnabled(0, False)
 
+
+    def ask_user_for_file_confirmation(self):
+        # join paradigms and file names 
+        paradigm_names_string = '\n '.join([
+            section["paradigm_combo"].text() + ": " + os.path.basename(section["mff_label"].text()) 
+            for section in self.file_upload_tab.sections
+        ])
+        # ask user for confirmation
+        message = (f"Confirm that you want to upload the following {len(self.file_upload_tab.sections)} file(s)?\n\n{paradigm_names_string}")
+        reply = QMessageBox.question(
+            self,
+            "Confirmation",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
+
+
+
     def process_files(self):
         """When file confirm button is pressed: double check validity, then process files"""
-
+        
         # Check all file fields filled out
         all_valid = (
             all(
@@ -699,6 +720,9 @@ class MainWindow(QMainWindow):
                 "Check that the fields are valid. If you see this something is really wrong.",
             )
             return
+        
+        if not self.ask_user_for_file_confirmation(self):
+            return   
 
         # initialize progress dialog
         progress_dialog = ProgressDialog(self)
@@ -810,7 +834,8 @@ class DataModel:
             os.path.dirname(os.path.abspath(__file__)), "ui_config.json"
         )
 
-        self.check_if_local_backup_matches_synced_log()
+        # DO NOT CHECK FOR LOCAL BACK UP DISCREPANCIES
+        #self.check_if_local_backup_matches_synced_log()
 
         # Load UI configuration file
         with open(self.config_file_path, "r") as f:
