@@ -152,7 +152,7 @@
             "label": "Other Notes",
             "type": "text",
             "default": "",
-            "validation": "^[a-zA-Z0-9 ]*$",
+            "validation": "^[a-zA-Z0-9 ;]*$",
             "error_message": "Notes must be alphanumeric"
         }
     },
@@ -276,7 +276,7 @@
             "label": "Other Notes",
             "type": "text",
             "default": "",
-            "validation": "^[a-zA-Z0-9 ]*$",
+            "validation": "^[a-zA-Z0-9 ;]*$",
             "error_message": "Notes must be alphanumeric"
         }
     },
@@ -430,7 +430,7 @@
             "label": "Other Notes",
             "type": "text",
             "default": "",
-            "validation": "^[a-zA-Z0-9 ]*$",
+            "validation": "^[a-zA-Z0-9 ;]*$",
             "error_message": "Notes must be alphanumeric"
         }
     },
@@ -552,7 +552,7 @@
             "label": "Other Notes",
             "type": "text",
             "default": "",
-            "validation": "^[a-zA-Z0-9 ]*$",
+            "validation": "^[a-zA-Z0-9 ;]*$",
             "error_message": "Notes must be alphanumeric"
         }
     },
@@ -671,7 +671,7 @@
             "label": "Other Notes",
             "type": "text",
             "default": "",
-            "validation": "^[a-zA-Z0-9 ]*$",
+            "validation": "^[a-zA-Z0-9 ;]*$",
             "error_message": "Notes must be alphanumeric"
         }
     }
