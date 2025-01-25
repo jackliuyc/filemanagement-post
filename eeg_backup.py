@@ -683,7 +683,7 @@ class MainWindow(QMainWindow):
     def ask_user_for_file_confirmation(self):
         # join paradigms and file names 
         paradigm_names_string = '\n '.join([
-            section["paradigm_combo"].text() + ": " + os.path.basename(section["mff_label"].text()) 
+            os.path.basename(section["mff_label"].text()) 
             for section in self.file_upload_tab.sections
         ])
         # ask user for confirmation
@@ -721,7 +721,7 @@ class MainWindow(QMainWindow):
             )
             return
         
-        if not self.ask_user_for_file_confirmation(self):
+        if not self.ask_user_for_file_confirmation():
             return   
 
         # initialize progress dialog
