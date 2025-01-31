@@ -1077,9 +1077,9 @@ class DataModel:
 
             # Update counter for paradigm
             counter = paradigm_counter.get(paradigm, 0) + 1
-            paradigm_counter[paradigm] = counter if counter > 1 else ""
+            paradigm_counter[paradigm] = counter
 
-            base_name = self.generate_base_name(paradigm, paradigm_counter[paradigm])
+            base_name = self.generate_base_name(paradigm, str(counter) if counter > 1 else "")
 
             final_directory_path = os.path.join(
                 destination_folder,
@@ -1122,7 +1122,7 @@ class DataModel:
 
             # Update counter for paradigm
             counter = paradigm_counter.get(paradigm, 0) + 1
-            paradigm_counter[paradigm] = counter if counter > 1 else ""
+            paradigm_counter[paradigm] = counter
 
             base_name = f"{self.deid:04}_{paradigm}{paradigm_counter[paradigm]}"
             if self.session_info.get("cap_type") == "babycap":
@@ -1254,7 +1254,6 @@ class DataModel:
         sidecar_dict["session_eeg_file_info"] = []
 
         # add file info
-        # paradigm_counter = {}
         for cur_file_info in self.eeg_file_info:
 
             # add file info to json
