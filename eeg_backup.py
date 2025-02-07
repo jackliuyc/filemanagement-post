@@ -679,30 +679,28 @@ class MainWindow(QMainWindow):
         # Disable first tab (have to reset whole session)
         self.tab_widget.setTabEnabled(0, False)
 
-
     def ask_user_for_file_confirmation(self):
-        # join paradigms and file names 
-        paradigm_names_string = '\n '.join([
-            os.path.basename(section["mff_label"].text()) 
-            for section in self.file_upload_tab.sections
-        ])
+        # join paradigms and file names
+        paradigm_names_string = "\n ".join(
+            [
+                os.path.basename(section["mff_label"].text())
+                for section in self.file_upload_tab.sections
+            ]
+        )
         # ask user for confirmation
-        message = (f"Confirm that you want to upload the following {len(self.file_upload_tab.sections)} file(s)?\n\n{paradigm_names_string}")
+        message = f"Confirm that you want to upload the following {len(self.file_upload_tab.sections)} file(s)?\n\n{paradigm_names_string}"
         reply = QMessageBox.question(
             self,
             "Confirmation",
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.No,
         )
         return reply == QMessageBox.StandardButton.Yes
 
-
-
-
     def process_files(self):
         """When file confirm button is pressed: double check validity, then process files"""
-        
+
         # Check all file fields filled out
         all_valid = (
             all(
@@ -720,9 +718,9 @@ class MainWindow(QMainWindow):
                 "Check that the fields are valid. If you see this something is really wrong.",
             )
             return
-        
+
         if not self.ask_user_for_file_confirmation():
-            return   
+            return
 
         # initialize progress dialog
         progress_dialog = ProgressDialog(self)
@@ -749,7 +747,7 @@ class MainWindow(QMainWindow):
         progress_dialog.update_progress(100)
 
         # save sidecar (not used currently)
-        #self.data_model.save_sidecar_files()
+        # self.data_model.save_sidecar_files()
 
         # close progress dialog
         progress_dialog.accept()
@@ -835,7 +833,7 @@ class DataModel:
         )
 
         # DO NOT CHECK FOR LOCAL BACK UP DISCREPANCIES
-        #self.check_if_local_backup_matches_synced_log()
+        # self.check_if_local_backup_matches_synced_log()
 
         # Load UI configuration file
         with open(self.config_file_path, "r") as f:
@@ -1046,7 +1044,11 @@ class DataModel:
         # Add additional modifiers if needed
         if self.session_info.get("cap_type") == "babycap":
             base_name += "_babycap"
-        if self.session_info.get("audio_source") == "speakers" and paradigm != "rest" and paradigm != 'resteyesclosed':
+        if (
+            self.session_info.get("audio_source") == "speakers"
+            and paradigm != "rest"
+            and paradigm != "resteyesclosed"
+        ):
             base_name += "_speakers"
 
         return base_name
@@ -1075,11 +1077,13 @@ class DataModel:
 
             paradigm = cur_file_info["paradigm"]
 
-            # Update counter for paradigm
+            # ipdate counter for paradigm
             counter = paradigm_counter.get(paradigm, 0) + 1
             paradigm_counter[paradigm] = counter
 
-            base_name = self.generate_base_name(paradigm, str(counter) if counter > 1 else "")
+            # gemerate base name
+            counter_str = "" if counter == 1 else str(counter)
+            base_name = self.generate_base_name(paradigm, counter_str)
 
             final_directory_path = os.path.join(
                 destination_folder,
@@ -1120,11 +1124,14 @@ class DataModel:
 
             paradigm = cur_file_info["paradigm"]
 
-            # Update counter for paradigm
+            # update counter for paradigm
             counter = paradigm_counter.get(paradigm, 0) + 1
             paradigm_counter[paradigm] = counter
 
-            base_name = f"{self.deid:04}_{paradigm}{paradigm_counter[paradigm]}"
+            # generate base name
+            counter_str = "" if counter == 1 else str(counter)
+            base_name = f"{self.deid:04}_{paradigm}{counter_str}"
+
             if self.session_info.get("cap_type") == "babycap":
                 base_name += "_babycap"
             if (
@@ -1258,9 +1265,8 @@ class DataModel:
 
             # add file info to json
             new_file_info = {}
-            new_file_info['file_paradigm'] = cur_file_info['paradigm']
-            new_file_info['file_filename'] = cur_file_info['mff_file']
-            
+            new_file_info["file_paradigm"] = cur_file_info["paradigm"]
+            new_file_info["file_filename"] = cur_file_info["mff_file"]
 
             # placeholders
             new_file_info["file_azure_json"] = ""
