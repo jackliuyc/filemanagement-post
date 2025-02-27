@@ -66,6 +66,7 @@
                 "chirp",
                 "chirplong",
                 "ssct",
+                "assr",
                 "rleeg",
                 "resteyesopeneyesclosed",
                 "talk",
@@ -196,6 +197,7 @@
                 "resteyesclosed",
                 "chirplong",
                 "ssct",
+                "assr",
                 "rleeg",
                 "resteyesopeneyesclosed"
             ],
@@ -347,6 +349,7 @@
                 "chirp",
                 "chirplong",
                 "ssct",
+                "assr",
                 "slstructured",
                 "slrandom",
                 "bblong",
@@ -591,6 +594,7 @@
                 "resteyesclosed",
                 "chirp",
                 "ssct",
+                "assr",
                 "resteyesopeneyesclosed",
                 "other"
             ],

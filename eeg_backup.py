@@ -806,6 +806,7 @@ class DataModel:
         "chirp": "Chirp",
         "chirplong": "Chirp",
         "ssct": "Steady State",
+        "assr": "ASSR",
         "rleeg": "Reversal Learning",
         "talk": "TalkListen",
         "listen": "TalkListen",
