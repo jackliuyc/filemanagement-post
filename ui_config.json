@@ -110,7 +110,8 @@
                 "sfrontbooth",
                 "T19",
                 "homevisit",
-                "T26"
+                "T26",
+                "E2"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
@@ -235,7 +236,8 @@
                 "sfrontbooth",
                 "T19",
                 "homevisit",
-                "T26"
+                "T26",
+                "E2"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
@@ -390,7 +392,8 @@
                 "sfrontbooth",
                 "T19",
                 "homevisit",
-                "T26"
+                "T26",
+                "E2"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
@@ -512,7 +515,8 @@
                 "sfrontbooth",
                 "T19",
                 "homevisit",
-                "T26"
+                "T26",
+                "E2"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
@@ -632,7 +636,8 @@
                 "sfrontbooth",
                 "T19",
                 "homevisit",
-                "T26"
+                "T26",
+                "E2"
             ],
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
