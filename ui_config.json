@@ -130,18 +130,6 @@
             "validation": "^[A-Za-z0-9]+$",
             "error_message": "Cap type must be selected"
         },
-        "audio_source": {
-            "name": "audio_source",
-            "label": "Audio Source",
-            "type": "combo",
-            "options": [
-                "headphones",
-                "speakers"
-            ],
-            "default": "",
-            "validation": "^[A-Za-z0-9]+$",
-            "error_message": "Audio source must be selected"
-        },
         "net_serial_number": {
             "name": "net_serial_number",
             "label": "Net Serial Number",
@@ -255,18 +243,6 @@
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
             "error_message": "Cap type must be selected"
-        },
-        "audio_source": {
-            "name": "audio_source",
-            "label": "Audio Source",
-            "type": "combo",
-            "options": [
-                "headphones",
-                "speakers"
-            ],
-            "default": "",
-            "validation": "^[A-Za-z0-9]+$",
-            "error_message": "Audio source must be selected"
         },
         "net_serial_number": {
             "name": "net_serial_number",
@@ -412,18 +388,6 @@
             "validation": "^[A-Za-z0-9]+$",
             "error_message": "Cap type must be selected"
         },
-        "audio_source": {
-            "name": "audio_source",
-            "label": "Audio Source",
-            "type": "combo",
-            "options": [
-                "headphones",
-                "speakers"
-            ],
-            "default": "",
-            "validation": "^[A-Za-z0-9]+$",
-            "error_message": "Audio source must be selected"
-        },
         "net_serial_number": {
             "name": "net_serial_number",
             "label": "Net Serial Number",
@@ -535,18 +499,6 @@
             "validation": "^[A-Za-z0-9]+$",
             "error_message": "Cap type must be selected"
         },
-        "audio_source": {
-            "name": "audio_source",
-            "label": "Audio Source",
-            "type": "combo",
-            "options": [
-                "headphones",
-                "speakers"
-            ],
-            "default": "",
-            "validation": "^[A-Za-z0-9]+$",
-            "error_message": "Audio source must be selected"
-        },
         "net_serial_number": {
             "name": "net_serial_number",
             "label": "Net Serial Number",
@@ -655,18 +607,6 @@
             "default": "",
             "validation": "^[A-Za-z0-9]+$",
             "error_message": "Cap type must be selected"
-        },
-        "audio_source": {
-            "name": "audio_source",
-            "label": "Audio Source",
-            "type": "combo",
-            "options": [
-                "headphones",
-                "speakers"
-            ],
-            "default": "",
-            "validation": "^[A-Za-z0-9]+$",
-            "error_message": "Audio source must be selected"
         },
         "net_serial_number": {
             "name": "net_serial_number",

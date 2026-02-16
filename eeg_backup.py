@@ -367,6 +367,15 @@ class FileInputForm(QWidget):
         form_layout.addRow(
             QLabel(f"Paradigm {len(self.sections) + 1}:"), paradigm_combo
         )
+        
+        # New combo box row for audio source for each paradigm
+        audio_combo = QComboBox()
+        audio_combo.wheelEvent = lambda event: None
+        audio_combo.addItems(["none", "headphones", "speakers"])
+        audio_combo.currentIndexChanged.connect(self.check_form_completion)
+        form_layout.addRow(
+            QLabel("Audio source:"), audio_combo
+        )
 
         # MFF file button
         mff_button = QPushButton("Upload .MFF file")
@@ -384,6 +393,7 @@ class FileInputForm(QWidget):
         self.sections.append(
             {
                 "paradigm_combo": paradigm_combo,
+                "audio_combo": audio_combo,
                 "mff_label": mff_label,
                 "widget": section_widget,
             }
@@ -519,9 +529,11 @@ class FileInputForm(QWidget):
 
             # Dictionary of file info
             paradigm = section["paradigm_combo"].currentText()
+            audio_source = section["audio_combo"].currentText()
             mff_file = section["mff_label"].text()
             file_info = {
                 "paradigm": paradigm,
+                "audio_source": audio_source,
                 "mff_file": mff_file if mff_file != "No file selected" else None,
             }
             self.data_model.eeg_file_info.append(file_info)
@@ -753,14 +765,20 @@ class MainWindow(QMainWindow):
         progress_dialog.accept()
 
         # display deid and confirm file transfer
-        if datetime.now().microsecond % 100 < 10:
-            message = r"""File transfer complete. Here is a lucky cat
+        message = "File transfer complete."
+        rand_num = datetime.now().microsecond % 100
+        if 5 <= rand_num <= 99: 
+            message += r"""File transfer complete. Here is a lucky cat
              /\_/\  
             ( o.o ) 
             > ^ <
             """
-        else:
-            message = "File transfer complete."
+        elif 0 <= rand_num <= 4:
+            message += r"""File transfer complete. Here is an ultra rare sleepy cat! 
+             /\_/\  
+            (  -.-  ) zZ
+            /       \
+            """
         message += f"\n\nYour DeID is: {self.data_model.deid:04}"
         QMessageBox.information(self, "Success", message)
 
@@ -855,7 +873,6 @@ class DataModel:
             "date": None,
             "location": None,
             "net_serial_number": None,
-            "audio_source": None,
             "cap_type": None,
             "other_notes": None,
         }
@@ -1037,7 +1054,7 @@ class DataModel:
         """Get deid from deid log, given a row index"""
         return self.deid_log.at[row, self.deid_log.columns[0]]
 
-    def generate_base_name(self, paradigm, counter=""):
+    def generate_base_name(self, paradigm, audio_source="", counter=""):
         """Generate base file name with all necessary data."""
         dat = self.session_info
         base_name = f"{dat['study']}_{dat['visit_number']}_{paradigm}{counter}_{dat['subject_id']}_{dat['subject_initials']}_{dat['date']}"
@@ -1045,11 +1062,7 @@ class DataModel:
         # Add additional modifiers if needed
         if self.session_info.get("cap_type") == "babycap":
             base_name += "_babycap"
-        if (
-            self.session_info.get("audio_source") == "speakers"
-            and paradigm != "rest"
-            and paradigm != "resteyesclosed"
-        ):
+        if audio_source == "speakers":
             base_name += "_speakers"
 
         return base_name
@@ -1078,13 +1091,13 @@ class DataModel:
 
             paradigm = cur_file_info["paradigm"]
 
-            # ipdate counter for paradigm
+            # update counter for paradigm
             counter = paradigm_counter.get(paradigm, 0) + 1
             paradigm_counter[paradigm] = counter
 
             # gemerate base name
             counter_str = "" if counter == 1 else str(counter)
-            base_name = self.generate_base_name(paradigm, counter_str)
+            base_name = self.generate_base_name(paradigm, cur_file_info['audio_source'], counter_str)
 
             final_directory_path = os.path.join(
                 destination_folder,
@@ -1118,6 +1131,7 @@ class DataModel:
 
         for cur_file_info in self.eeg_file_info:
             src_path = cur_file_info["mff_file"]
+            audio_source = cur_file_info['audio_source']
 
             # Skip files if paths are missing
             if not src_path:
@@ -1135,10 +1149,7 @@ class DataModel:
 
             if self.session_info.get("cap_type") == "babycap":
                 base_name += "_babycap"
-            if (
-                self.session_info.get("audio_source") == "speakers"
-                and paradigm != "rest"
-            ):
+            if audio_source == "speakers":
                 base_name += "_speakers"
 
             dst_path_deid = os.path.join(
