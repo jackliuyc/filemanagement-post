@@ -765,16 +765,18 @@ class MainWindow(QMainWindow):
         progress_dialog.accept()
 
         # display deid and confirm file transfer
-        message = "File transfer complete."
+        message = "File transfer complete.\n"
         rand_num = datetime.now().microsecond % 100
-        if 5 <= rand_num <= 99: 
-            message += r"""File transfer complete. Here is a lucky cat
+        if 5 <= rand_num <= 19: 
+            message += r"""Here is a lucky cat
+            
              /\_/\  
             ( o.o ) 
             > ^ <
             """
         elif 0 <= rand_num <= 4:
-            message += r"""File transfer complete. Here is an ultra rare sleepy cat! 
+            message += r"""Here is an ultra rare sleepy cat! 
+
              /\_/\  
             (  -.-  ) zZ
             /       \
